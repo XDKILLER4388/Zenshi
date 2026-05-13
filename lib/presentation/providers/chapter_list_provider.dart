@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/chapter.dart';
+import 'use_case_providers.dart';
 
 // ── Chapter list provider ──────────────────────────────────────────────────────
 
@@ -21,9 +22,12 @@ class ChapterListArgs {
   int get hashCode => Object.hash(mangaId, sourceId);
 }
 
-/// Returns empty chapter list — no DB access to avoid startup crashes.
+/// Fetches chapter list using the [GetChapterListUseCase].
 final chapterListProvider = FutureProvider.family<List<Chapter>, ChapterListArgs>(
-  (ref, args) async => [],
+  (ref, args) async {
+    final useCase = ref.watch(getChapterListUseCaseProvider);
+    return useCase(args.mangaId, args.sourceId);
+  },
 );
 
 ChapterListArgs chapterListArgs({
