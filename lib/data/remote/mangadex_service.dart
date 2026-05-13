@@ -159,6 +159,7 @@ class MangaDexService {
             '&translatedLanguage[]=ja'
             '&translatedLanguage[]=ko'
             '&translatedLanguage[]=zh'
+            '&includeExternalUrl=1'
             '&order[chapter]=asc'
             '&includes[]=scanlation_group'
             '&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic';
@@ -175,8 +176,12 @@ class MangaDexService {
 
         for (final item in results) {
           final ch = _parseChapter(item as Map<String, dynamic>, mangaId);
-          // Only add chapters that have at least one page and avoid duplicates
-          if (ch != null && (ch.pageCount == null || ch.pageCount! > 0)) {
+          // Only add chapters that have at least one page OR an external URL (for Manhwa)
+          final attrs = item['attributes'] as Map<String, dynamic>;
+          final hasExternalUrl = attrs['externalUrl'] != null;
+
+          if (ch != null &&
+              (ch.pageCount == null || ch.pageCount! > 0 || hasExternalUrl)) {
             final key = '${ch.chapterNumber}_${ch.title}';
             if (!seenChapters.contains(key)) {
               chapters.add(ch);
