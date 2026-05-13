@@ -25,27 +25,40 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 });
 
 import '../../data/remote/mangadex_service.dart';
+import '../../data/remote/comick_service.dart';
 import '../../data/local/daos/manga_dao.dart';
 import '../../data/local/daos/chapter_dao.dart';
 
 // ── Manga ──────────────────────────────────────────────────────────────────────
 
-/// Concrete [MangaRepository] using MangaDex API.
+/// Concrete [MangaRepository] using multiple sources.
 final mangaRepositoryProvider = Provider<MangaRepository>((ref) {
-  return _MangaDexRepository();
+  return _MultiSourceRepository();
 });
 
-class _MangaDexRepository implements MangaRepository {
+class _MultiSourceRepository implements MangaRepository {
   @override
   Stream<List<Manga>> watchLibrary() => Stream.value([]);
 
   @override
-  Future<Manga?> getMangaById(String id, String sourceId) =>
-      MangaDexService.fetchMangaById(id);
+  Future<Manga?> getMangaById(String id, String sourceId) async {
+    if (sourceId == 'comick') return ComickService.fetchMangaBySlug(id);
+    return MangaDexService.fetchMangaById(id);
+  }
 
   @override
-  Future<List<Manga>> searchManga(SearchQuery query) =>
-      MangaDexService.search(query.title ?? '');
+  Future<List<Manga>> searchManga(SearchQuery query) async {
+    final title = query.title ?? '';
+    if (title.isEmpty) return [];
+
+    // Search both sources in parallel
+    final results = await Future.wait([
+      MangaDexService.search(title),
+      ComickService.search(title),
+    ]);
+
+    return [...results[0], ...results[1]];
+  }
 
   @override
   Future<void> addToLibrary(Manga manga) async {}
@@ -54,12 +67,16 @@ class _MangaDexRepository implements MangaRepository {
   Future<void> removeFromLibrary(String mangaId) async {}
 
   @override
-  Future<List<Chapter>> getChapterList(String mangaId, String sourceId) =>
-      MangaDexService.fetchChapterList(mangaId);
+  Future<List<Chapter>> getChapterList(String mangaId, String sourceId) async {
+    if (sourceId == 'comick') return ComickService.fetchChapterList(mangaId);
+    return MangaDexService.fetchChapterList(mangaId);
+  }
 
   @override
-  Future<List<Page>> getPages(Chapter chapter) =>
-      MangaDexService.fetchPages(chapter.id);
+  Future<List<Page>> getPages(Chapter chapter) async {
+    if (chapter.sourceId == 'comick') return ComickService.fetchPages(chapter.id);
+    return MangaDexService.fetchPages(chapter.id);
+  }
 }
 
 // ── Reader ─────────────────────────────────────────────────────────────────────
@@ -71,8 +88,10 @@ final readerRepositoryProvider = Provider<ReaderRepository>((ref) {
 
 class _MangaDexReaderRepository implements ReaderRepository {
   @override
-  Future<List<Page>> getPages(Chapter chapter) =>
-      MangaDexService.fetchPages(chapter.id);
+  Future<List<Page>> getPages(Chapter chapter) async {
+    if (chapter.sourceId == 'comick') return ComickService.fetchPages(chapter.id);
+    return MangaDexService.fetchPages(chapter.id);
+  }
 
   @override
   Future<void> saveReadingProgress(ReadingProgress progress) async {}
