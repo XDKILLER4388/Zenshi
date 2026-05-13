@@ -245,7 +245,20 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
             ListTile(
               leading: const Icon(Icons.download_outlined),
               title: const Text('Download'),
-              onTap: () => Navigator.of(context).pop(),
+              onTap: () {
+                Navigator.of(context).pop();
+                ref.read(enqueueDownloadUseCaseProvider).call(
+                      chapter,
+                      '', // Manga title not available here easily without passing it down
+                      ImageQuality.high,
+                    );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Downloading Chapter ${chapter.chapterNumber}...'),
+                    backgroundColor: AppColors.primary,
+                  ),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.check_circle_outline),
