@@ -86,16 +86,6 @@ final _mockAvailableExtensions = [
     healthStatus: ExtensionHealthStatus.healthy,
   ),
   const ExtensionInfo(
-    id: 'comick',
-    name: 'Comick.io',
-    version: '1.0.0',
-    sourceClass: 'ComickSource',
-    allowedDomains: ['comick.io', 'comick.cc'],
-    sourceType: SourceType.aggregator,
-    language: 'Multi',
-    healthStatus: ExtensionHealthStatus.healthy,
-  ),
-  const ExtensionInfo(
     id: 'manhwa18',
     name: 'Manhwa18.cc',
     version: '1.0.0',
