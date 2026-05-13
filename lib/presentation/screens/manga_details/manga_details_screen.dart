@@ -81,6 +81,7 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
 
           final sortedChapters = chaptersAsync.valueOrNull ?? [];
           final chapters = List<Chapter>.from(sortedChapters);
+          // Standard sort: newest first (descending) by default for details view
           if (_sortAscending) {
             chapters.sort(
                 (a, b) => a.chapterNumber.compareTo(b.chapterNumber));

@@ -149,19 +149,20 @@ class MangaDexService {
       int offset = 0;
       const limit = 100;
 
-      // Fetch up to 1000 chapters (10 pages) to ensure completeness
-      for (int page = 0; page < 10; page++) {
+      // Fetch up to 2000 chapters (20 pages) to ensure completeness
+      final seenChapters = <String>{};
+      for (int page = 0; page < 20; page++) {
         final url =
             '$_base/manga/$mangaId/feed'
             '?limit=$limit&offset=$offset'
             '&translatedLanguage[]=en'
-            '&order[chapter]=desc'
+            '&order[chapter]=asc'
             '&includes[]=scanlation_group'
             '&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic';
 
         final response = await _client
             .get(Uri.parse(url), headers: _headers)
-            .timeout(const Duration(seconds: 10));
+            .timeout(const Duration(seconds: 15));
 
         if (response.statusCode != 200) break;
 
@@ -171,9 +172,13 @@ class MangaDexService {
 
         for (final item in results) {
           final ch = _parseChapter(item as Map<String, dynamic>, mangaId);
-          // Only add chapters that have at least one page
+          // Only add chapters that have at least one page and avoid duplicates
           if (ch != null && (ch.pageCount == null || ch.pageCount! > 0)) {
-            chapters.add(ch);
+            final key = '${ch.chapterNumber}_${ch.title}';
+            if (!seenChapters.contains(key)) {
+              chapters.add(ch);
+              seenChapters.add(key);
+            }
           }
         }
 
