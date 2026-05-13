@@ -129,18 +129,27 @@ class MangaFireService {
       final document = parser.parse(response.body);
       final chapterItems = document.querySelectorAll('.chapters li a');
 
-      return chapterItems.map((item) {
+      return chapterItems.map<Chapter>((item) {
         final title = item.text.trim();
         final href = item.attributes['href'] ?? '';
         final id = href.split('/').where((s) => s.isNotEmpty).last;
 
+        double chapterNumber = 0;
+        final match = RegExp(
+          r'Chapter\s*(\d+\.?\d*)',
+          caseSensitive: false,
+        ).firstMatch(title);
+        if (match != null) {
+          chapterNumber = double.tryParse(match.group(1) ?? '0') ?? 0;
+        }
+
         return Chapter(
           id: id,
           mangaId: mangaId,
+          sourceId: 'mangafire',
+          chapterNumber: chapterNumber,
           title: title,
-          url: href,
-          scanlator: 'MangaFire',
-          uploadedAt: DateTime.now(),
+          uploadDate: DateTime.now(),
         );
       }).toList();
     } catch (_) {

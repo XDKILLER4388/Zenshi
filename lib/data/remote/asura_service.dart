@@ -24,7 +24,10 @@ class AsuraService {
 
       print('Asura fetchLatest: ${response.statusCode}');
       if (response.statusCode != 200) {
-        print('Asura Error Body: ${response.body.take(200)}');
+        final bodySnippet = response.body.length > 200
+            ? response.body.substring(0, 200)
+            : response.body;
+        print('Asura Error Body: $bodySnippet');
         return [];
       }
 
