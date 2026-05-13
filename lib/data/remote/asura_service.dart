@@ -21,27 +21,43 @@ class AsuraService {
     try {
       final url = '$_base';
       final response = await _client.get(Uri.parse(url), headers: _headers);
-      if (response.statusCode != 200) return [];
+
+      print('Asura fetchLatest: ${response.statusCode}');
+      if (response.statusCode != 200) {
+        print('Asura Error Body: ${response.body.take(200)}');
+        return [];
+      }
 
       final document = parser.parse(response.body);
-      // Asura home page items
-      final items = document.querySelectorAll('.listupd .bs');
+      // Asura updated selector for their new site layout
+      final items = document.querySelectorAll(
+        '.grid-cols-2 > div, .listupd .bs, .utao .uta',
+      );
+      print('Asura items found: ${items.length}');
 
-      return items.map((item) {
-        final title = item.querySelector('.tt')?.text.trim() ?? 'Unknown';
-        final href = item.querySelector('a')?.attributes['href'] ?? '';
-        final id = href.split('/').where((s) => s.isNotEmpty).last;
-        final coverUrl = item.querySelector('img')?.attributes['src'] ?? '';
+      return items
+          .map((item) {
+            final title =
+                item.querySelector('.tt, h3, .title')?.text.trim() ?? 'Unknown';
+            final href = item.querySelector('a')?.attributes['href'] ?? '';
+            final id = href.split('/').where((s) => s.isNotEmpty).last;
+            final coverUrl =
+                item.querySelector('img')?.attributes['src'] ??
+                item.querySelector('img')?.attributes['data-src'] ??
+                '';
 
-        return Manga(
-          id: id,
-          sourceId: 'asura',
-          title: title,
-          coverUrl: coverUrl,
-          status: MangaStatus.unknown,
-        );
-      }).toList();
-    } catch (_) {
+            return Manga(
+              id: id,
+              sourceId: 'asura',
+              title: title,
+              coverUrl: coverUrl,
+              status: MangaStatus.unknown,
+            );
+          })
+          .where((m) => m.id.isNotEmpty)
+          .toList();
+    } catch (e) {
+      print('Asura Exception: $e');
       return [];
     }
   }

@@ -21,26 +21,39 @@ class ReaperService {
     try {
       final url = '$_base';
       final response = await _client.get(Uri.parse(url), headers: _headers);
+
+      print('Reaper fetchLatest: ${response.statusCode}');
       if (response.statusCode != 200) return [];
 
       final document = parser.parse(response.body);
-      final items = document.querySelectorAll('.listupd .bs');
+      // Reaper Scans updated layout selectors
+      final items = document.querySelectorAll(
+        '.grid > div, .listupd .bs, .utao .uta',
+      );
 
-      return items.map((item) {
-        final title = item.querySelector('.tt')?.text.trim() ?? 'Unknown';
-        final href = item.querySelector('a')?.attributes['href'] ?? '';
-        final id = href.split('/').where((s) => s.isNotEmpty).last;
-        final coverUrl = item.querySelector('img')?.attributes['src'] ?? '';
+      return items
+          .map((item) {
+            final title =
+                item.querySelector('.tt, h3, .title')?.text.trim() ?? 'Unknown';
+            final href = item.querySelector('a')?.attributes['href'] ?? '';
+            final id = href.split('/').where((s) => s.isNotEmpty).last;
+            final coverUrl =
+                item.querySelector('img')?.attributes['src'] ??
+                item.querySelector('img')?.attributes['data-src'] ??
+                '';
 
-        return Manga(
-          id: id,
-          sourceId: 'reaper',
-          title: title,
-          coverUrl: coverUrl,
-          status: MangaStatus.unknown,
-        );
-      }).toList();
-    } catch (_) {
+            return Manga(
+              id: id,
+              sourceId: 'reaper',
+              title: title,
+              coverUrl: coverUrl,
+              status: MangaStatus.unknown,
+            );
+          })
+          .where((m) => m.id.isNotEmpty)
+          .toList();
+    } catch (e) {
+      print('Reaper Exception: $e');
       return [];
     }
   }
@@ -148,23 +161,28 @@ class ReaperService {
       if (response.statusCode != 200) return [];
 
       final document = parser.parse(response.body);
-      
-      // Reaper Scans often uses specific reader classes or IDs
-      final images = document.querySelectorAll('.reader-area img, .rd-area img, #readerarea img, .chapter-content img');
 
-      return images.asMap().entries.map((entry) {
-        final img = entry.value;
-        final imageUrl = img.attributes['src'] ?? 
-                        img.attributes['data-src'] ?? 
-                        img.attributes['data-lazy-src'] ?? 
-                        img.attributes['content'] ?? 
-                        '';
-                        
-        return Page(
-          index: entry.key,
-          imageUrl: imageUrl.trim(),
-        );
-      }).where((p) => p.imageUrl.isNotEmpty).toList();
+      // Reaper Scans often uses specific reader classes or IDs
+      final images = document.querySelectorAll(
+        '.reader-area img, .rd-area img, #readerarea img, .chapter-content img',
+      );
+
+      return images
+          .asMap()
+          .entries
+          .map((entry) {
+            final img = entry.value;
+            final imageUrl =
+                img.attributes['src'] ??
+                img.attributes['data-src'] ??
+                img.attributes['data-lazy-src'] ??
+                img.attributes['content'] ??
+                '';
+
+            return Page(index: entry.key, imageUrl: imageUrl.trim());
+          })
+          .where((p) => p.imageUrl.isNotEmpty)
+          .toList();
     } catch (_) {
       return [];
     }
