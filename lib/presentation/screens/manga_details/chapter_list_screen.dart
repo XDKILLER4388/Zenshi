@@ -79,7 +79,7 @@ class _ChapterListScreenState extends ConsumerState<ChapterListScreen> {
                 opacity: isRead ? 0.5 : 1.0,
                 child: ListTile(
                   onTap: () => ctx.push(
-                    '/reader/${widget.sourceId}/${widget.mangaId}/${ch.id}',
+                    '/manga-reader/${widget.sourceId}/${widget.mangaId}/${ch.id}',
                   ),
                   title: Text(
                     'Chapter ${ch.chapterNumber.toStringAsFixed(ch.chapterNumber % 1 == 0 ? 0 : 1)}',

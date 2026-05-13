@@ -296,7 +296,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           manga: manga,
           width: double.infinity,
           height: 200,
-          onTap: () => ctx.push('/manga/${manga.sourceId}/${manga.id}'),
         );
       },
     );

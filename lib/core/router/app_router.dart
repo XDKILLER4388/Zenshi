@@ -29,9 +29,9 @@ abstract final class Routes {
   static const discover = '/home/discover';
   static const library = '/home/library';
   static const downloads = '/home/downloads';
-  static const mangaDetails = '/manga/:sourceId/:id';
-  static const chapterList = '/manga/:sourceId/:id/chapters';
-  static const reader = '/reader/:sourceId/:mangaId/:chapterId';
+  static const mangaDetails = '/manga-details/:sourceId/:id';
+  static const chapterList = '/manga-details/:sourceId/:id/chapters';
+  static const reader = '/manga-reader/:sourceId/:mangaId/:chapterId';
   static const search = '/search';
   static const extensions = '/extensions';
   static const notifications = '/notifications';

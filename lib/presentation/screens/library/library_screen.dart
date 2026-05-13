@@ -63,10 +63,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           obscureText: true,
           keyboardType: TextInputType.number,
           maxLength: 6,
-          decoration: const InputDecoration(
-            hintText: 'PIN',
-            counterText: '',
-          ),
+          decoration: const InputDecoration(hintText: 'PIN', counterText: ''),
         ),
         actions: [
           TextButton(
@@ -88,15 +85,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   // ── Import / Export ────────────────────────────────────────────────────
 
   void _exportLibrary() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Library export coming soon')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Library export coming soon')));
   }
 
   void _importLibrary() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Library import coming soon')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Library import coming soon')));
   }
 
   @override
@@ -209,12 +206,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   List<Manga> _applyFilter(List<Manga> manga, LibraryFilterState filter) {
     return manga.where((m) {
-      if (filter.genre != null &&
-          !m.genres.contains(filter.genre)) {
+      if (filter.genre != null && !m.genres.contains(filter.genre)) {
         return false;
       }
-      if (filter.status != null &&
-          m.status.name != filter.status) {
+      if (filter.status != null && m.status.name != filter.status) {
         return false;
       }
       return true;
@@ -366,10 +361,16 @@ class _SortSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final options = [
-      (LibrarySortOption.alphabeticalAZ, 'Alphabetical A → Z',
-          Icons.sort_by_alpha),
-      (LibrarySortOption.alphabeticalZA, 'Alphabetical Z → A',
-          Icons.sort_by_alpha),
+      (
+        LibrarySortOption.alphabeticalAZ,
+        'Alphabetical A → Z',
+        Icons.sort_by_alpha,
+      ),
+      (
+        LibrarySortOption.alphabeticalZA,
+        'Alphabetical Z → A',
+        Icons.sort_by_alpha,
+      ),
       (LibrarySortOption.lastRead, 'Last Read', Icons.history),
       (LibrarySortOption.latestUpdate, 'Latest Update', Icons.update),
       (LibrarySortOption.mostViewed, 'Most Viewed', Icons.visibility_outlined),
@@ -441,9 +442,8 @@ class _FilterSheetState extends State<_FilterSheet> {
                 Text('Filter', style: AppTypography.titleMedium),
                 const Spacer(),
                 TextButton(
-                  onPressed: () => setState(
-                    () => _state = LibraryFilterState.empty,
-                  ),
+                  onPressed: () =>
+                      setState(() => _state = LibraryFilterState.empty),
                   child: const Text('Clear all'),
                 ),
               ],
@@ -553,10 +553,7 @@ class _FilterChip extends StatelessWidget {
 // ── Manga grid ─────────────────────────────────────────────────────────────────
 
 class _MangaGrid extends ConsumerWidget {
-  const _MangaGrid({
-    required this.manga,
-    required this.privateUnlocked,
-  });
+  const _MangaGrid({required this.manga, required this.privateUnlocked});
 
   final List<Manga> manga;
   final bool privateUnlocked;
@@ -576,6 +573,7 @@ class _MangaGrid extends ConsumerWidget {
         final m = manga[index];
         return _LibraryMangaCard(
           manga: m,
+          isPrivateLocked: !privateUnlocked,
           onRemove: () =>
               ref.read(libraryProvider.notifier).removeFromLibrary(m.id),
         );
@@ -590,15 +588,25 @@ class _LibraryMangaCard extends StatelessWidget {
   const _LibraryMangaCard({
     required this.manga,
     required this.onRemove,
+    this.isPrivateLocked = false,
   });
 
   final Manga manga;
   final VoidCallback onRemove;
+  final bool isPrivateLocked;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.push('/manga/${manga.sourceId}/${manga.id}'),
+      onTap: () {
+        if (isPrivateLocked) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Unlock private library to view')),
+          );
+          return;
+        }
+        context.push('/manga-details/${manga.sourceId}/${manga.id}');
+      },
       onLongPress: () => _showContextMenu(context),
       child: Stack(
         children: [
@@ -613,9 +621,8 @@ class _LibraryMangaCard extends StatelessWidget {
                       ? CachedNetworkImage(
                           imageUrl: manga.coverUrl!,
                           fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(
-                            color: AppColors.surfaceVariant,
-                          ),
+                          placeholder: (_, __) =>
+                              Container(color: AppColors.surfaceVariant),
                           errorWidget: (_, __, ___) => Container(
                             color: AppColors.surfaceVariant,
                             child: const Icon(
@@ -690,8 +697,10 @@ class _LibraryMangaCard extends StatelessWidget {
               child: Text(manga.title, style: AppTypography.titleSmall),
             ),
             ListTile(
-              leading: const Icon(Icons.bookmark_remove_outlined,
-                  color: AppColors.error),
+              leading: const Icon(
+                Icons.bookmark_remove_outlined,
+                color: AppColors.error,
+              ),
               title: const Text('Remove from Library'),
               onTap: () {
                 Navigator.of(context).pop();
@@ -741,15 +750,19 @@ class _CollectionsTab extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.folder_outlined,
-                size: 64, color: AppColors.onSurfaceMuted),
+            const Icon(
+              Icons.folder_outlined,
+              size: 64,
+              color: AppColors.onSurfaceMuted,
+            ),
             const SizedBox(height: 16),
             Text('No collections yet', style: AppTypography.titleSmall),
             const SizedBox(height: 8),
             Text(
               'Create collections to organise your library.',
-              style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.onSurfaceMuted),
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.onSurfaceMuted,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -778,15 +791,19 @@ class _TagsTab extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.label_outline,
-                size: 64, color: AppColors.onSurfaceMuted),
+            const Icon(
+              Icons.label_outline,
+              size: 64,
+              color: AppColors.onSurfaceMuted,
+            ),
             const SizedBox(height: 16),
             Text('No tags yet', style: AppTypography.titleSmall),
             const SizedBox(height: 8),
             Text(
               'Create tags to label and filter your manga.',
-              style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.onSurfaceMuted),
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.onSurfaceMuted,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -825,8 +842,9 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Add manga from Discover to start building your collection.',
-              style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.onSurfaceMuted),
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.onSurfaceMuted,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),

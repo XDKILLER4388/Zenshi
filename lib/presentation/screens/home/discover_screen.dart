@@ -284,11 +284,7 @@ class _MangaSection extends StatelessWidget {
                 separatorBuilder: (_, __) => const SizedBox(width: 12),
                 itemBuilder: (ctx, i) {
                   final manga = items[i];
-                  return MangaCard(
-                    manga: manga,
-                    onTap: () =>
-                        ctx.push('/manga/${manga.sourceId}/${manga.id}'),
-                  );
+                  return MangaCard(manga: manga);
                 },
               );
             },

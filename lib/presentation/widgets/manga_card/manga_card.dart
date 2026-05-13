@@ -36,8 +36,12 @@ class MangaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveOnTap =
+        onTap ??
+        () => context.push('/manga-details/${manga.sourceId}/${manga.id}');
+
     return GestureDetector(
-      onTap: onTap,
+      onTap: effectiveOnTap,
       child: SizedBox(
         width: width,
         child: Column(
@@ -56,10 +60,8 @@ class MangaCard extends StatelessWidget {
                         ? CachedNetworkImage(
                             imageUrl: manga.coverUrl!,
                             fit: BoxFit.cover,
-                            placeholder: (_, __) => _ShimmerBox(
-                              width: width,
-                              height: height,
-                            ),
+                            placeholder: (_, __) =>
+                                _ShimmerBox(width: width, height: height),
                             errorWidget: (_, __, ___) => _GradientPlaceholder(
                               title: manga.title,
                               width: width,
@@ -78,8 +80,10 @@ class MangaCard extends StatelessWidget {
                   top: 8,
                   left: 8,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withAlpha(150),
                       borderRadius: BorderRadius.circular(4),
