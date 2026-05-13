@@ -27,6 +27,11 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 import '../../data/remote/mangadex_service.dart';
 import '../../data/remote/manhwaz_service.dart';
 import '../../data/remote/manhwa18_service.dart';
+import '../../data/remote/bato_service.dart';
+import '../../data/remote/manganato_service.dart';
+import '../../data/remote/asura_service.dart';
+import '../../data/remote/reaper_service.dart';
+import '../../data/remote/flame_service.dart';
 import '../../data/local/daos/manga_dao.dart';
 import '../../data/local/daos/chapter_dao.dart';
 
@@ -43,10 +48,16 @@ class _MultiSourceRepository implements MangaRepository {
 
   @override
   Future<Manga?> getMangaById(String id, String sourceId) async {
-    if (sourceId == 'manhwaz' || sourceId == 'manhwa18') {
-      return null;
-    }
-    return MangaDexService.fetchMangaById(id);
+    return switch (sourceId) {
+      'bato' => null,
+      'manganato' => null,
+      'asura' => null,
+      'reaper' => null,
+      'flame' => null,
+      'manhwaz' => null,
+      'manhwa18' => null,
+      _ => MangaDexService.fetchMangaById(id),
+    };
   }
 
   @override
@@ -59,9 +70,23 @@ class _MultiSourceRepository implements MangaRepository {
       MangaDexService.search(title),
       ManhwazService.search(title),
       Manhwa18Service.search(title),
+      BatoService.search(title),
+      ManganatoService.search(title),
+      AsuraService.search(title),
+      ReaperService.search(title),
+      FlameService.search(title),
     ]);
 
-    return [...results[0], ...results[1], ...results[2]];
+    return [
+      ...results[0],
+      ...results[1],
+      ...results[2],
+      ...results[3],
+      ...results[4],
+      ...results[5],
+      ...results[6],
+      ...results[7],
+    ];
   }
 
   @override
@@ -72,16 +97,30 @@ class _MultiSourceRepository implements MangaRepository {
 
   @override
   Future<List<Chapter>> getChapterList(String mangaId, String sourceId) async {
-    if (sourceId == 'manhwaz') return ManhwazService.fetchChapterList(mangaId);
-    if (sourceId == 'manhwa18') return Manhwa18Service.fetchChapterList(mangaId);
-    return MangaDexService.fetchChapterList(mangaId);
+    return switch (sourceId) {
+      'manhwaz' => ManhwazService.fetchChapterList(mangaId),
+      'manhwa18' => Manhwa18Service.fetchChapterList(mangaId),
+      'bato' => BatoService.fetchChapterList(mangaId),
+      'manganato' => ManganatoService.fetchChapterList(mangaId),
+      'asura' => AsuraService.fetchChapterList(mangaId),
+      'reaper' => ReaperService.fetchChapterList(mangaId),
+      'flame' => FlameService.fetchChapterList(mangaId),
+      _ => MangaDexService.fetchChapterList(mangaId),
+    };
   }
 
   @override
   Future<List<Page>> getPages(Chapter chapter) async {
-    if (chapter.sourceId == 'manhwaz') return ManhwazService.fetchPages(chapter.id);
-    if (chapter.sourceId == 'manhwa18') return Manhwa18Service.fetchPages(chapter.id);
-    return MangaDexService.fetchPages(chapter.id);
+    return switch (chapter.sourceId) {
+      'manhwaz' => ManhwazService.fetchPages(chapter.id),
+      'manhwa18' => Manhwa18Service.fetchPages(chapter.id),
+      'bato' => BatoService.fetchPages(chapter.id),
+      'manganato' => ManganatoService.fetchPages(chapter.id),
+      'asura' => AsuraService.fetchPages(chapter.id),
+      'reaper' => ReaperService.fetchPages(chapter.id),
+      'flame' => FlameService.fetchPages(chapter.id),
+      _ => MangaDexService.fetchPages(chapter.id),
+    };
   }
 }
 
@@ -95,9 +134,16 @@ final readerRepositoryProvider = Provider<ReaderRepository>((ref) {
 class _MangaDexReaderRepository implements ReaderRepository {
   @override
   Future<List<Page>> getPages(Chapter chapter) async {
-    if (chapter.sourceId == 'manhwaz') return ManhwazService.fetchPages(chapter.id);
-    if (chapter.sourceId == 'manhwa18') return Manhwa18Service.fetchPages(chapter.id);
-    return MangaDexService.fetchPages(chapter.id);
+    return switch (chapter.sourceId) {
+      'manhwaz' => ManhwazService.fetchPages(chapter.id),
+      'manhwa18' => Manhwa18Service.fetchPages(chapter.id),
+      'bato' => BatoService.fetchPages(chapter.id),
+      'manganato' => ManganatoService.fetchPages(chapter.id),
+      'asura' => AsuraService.fetchPages(chapter.id),
+      'reaper' => ReaperService.fetchPages(chapter.id),
+      'flame' => FlameService.fetchPages(chapter.id),
+      _ => MangaDexService.fetchPages(chapter.id),
+    };
   }
 
   @override
