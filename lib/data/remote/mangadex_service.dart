@@ -156,6 +156,9 @@ class MangaDexService {
             '$_base/manga/$mangaId/feed'
             '?limit=$limit&offset=$offset'
             '&translatedLanguage[]=en'
+            '&translatedLanguage[]=ja'
+            '&translatedLanguage[]=ko'
+            '&translatedLanguage[]=zh'
             '&order[chapter]=asc'
             '&includes[]=scanlation_group'
             '&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic';

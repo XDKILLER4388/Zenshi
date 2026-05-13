@@ -42,24 +42,40 @@ class ComickService {
 
   static Future<List<Chapter>> fetchChapterList(String hid) async {
     try {
-      // Fetching chapters requires the 'hid' (unique ID) of the comic
-      final url = '$_base/comic/$hid/chapters?lang=en&limit=1000';
+      // Fetching all chapters using a very large limit and no pagination needed if limit is high enough
+      final url = '$_base/comic/$hid/chapters?lang=en&limit=10000';
       final response = await _client.get(Uri.parse(url), headers: _headers);
       if (response.statusCode != 200) return [];
 
       final data = jsonDecode(response.body);
       final List<dynamic> chapters = data['chapters'] ?? [];
       
-      return chapters.map((item) => Chapter(
-        id: item['hid'],
-        mangaId: hid,
-        sourceId: 'comick',
-        chapterNumber: double.tryParse(item['chap'] ?? '0') ?? 0,
-        title: item['title'],
-        uploadDate: DateTime.tryParse(item['created_at'] ?? ''),
-        pageCount: null,
-        isRead: false,
-      )).toList();
+      final List<Chapter> result = [];
+      final seen = <String>{};
+
+      for (final item in chapters) {
+        final chapNum = item['chap'] ?? '0';
+        final vol = item['vol'] ?? '';
+        final key = '${chapNum}_$vol';
+        
+        if (!seen.contains(key)) {
+          result.add(Chapter(
+            id: item['hid'],
+            mangaId: hid,
+            sourceId: 'comick',
+            chapterNumber: double.tryParse(chapNum) ?? 0,
+            title: item['title'],
+            uploadDate: DateTime.tryParse(item['created_at'] ?? ''),
+            pageCount: null,
+            isRead: false,
+          ));
+          seen.add(key);
+        }
+      }
+      
+      // Sort chapters numerically: newest first
+      result.sort((a, b) => b.chapterNumber.compareTo(a.chapterNumber));
+      return result;
     } catch (_) {
       return [];
     }
