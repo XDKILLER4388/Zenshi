@@ -598,6 +598,7 @@ class _LibraryMangaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onTap: () => context.push('/manga/${manga.sourceId}/${manga.id}'),
       onLongPress: () => _showContextMenu(context),
       child: Stack(
         children: [

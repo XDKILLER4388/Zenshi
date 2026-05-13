@@ -12,9 +12,21 @@ import '../../widgets/common/skeleton_loader.dart';
 import '../../widgets/manga_card/manga_card.dart';
 
 const _genres = [
-  'Action', 'Romance', 'Fantasy', 'Horror', 'Comedy',
-  'Sci-Fi', 'Slice of Life', 'Sports', 'Mystery', 'Thriller',
-  'Isekai', 'Mecha', 'Historical', 'Supernatural', 'Drama',
+  'Action',
+  'Romance',
+  'Fantasy',
+  'Horror',
+  'Comedy',
+  'Sci-Fi',
+  'Slice of Life',
+  'Sports',
+  'Mystery',
+  'Thriller',
+  'Isekai',
+  'Mecha',
+  'Historical',
+  'Supernatural',
+  'Drama',
 ];
 
 class DiscoverScreen extends ConsumerWidget {
@@ -46,7 +58,7 @@ class DiscoverScreen extends ConsumerWidget {
         onPressed: () {
           if (allLoaded.isNotEmpty) {
             final pick = allLoaded[math.Random().nextInt(allLoaded.length)];
-            context.push('/manga/${pick.id}');
+            context.push('/manga/${pick.sourceId}/${pick.id}');
           }
         },
         backgroundColor: AppColors.primary,
@@ -274,7 +286,8 @@ class _MangaSection extends StatelessWidget {
                   final manga = items[i];
                   return MangaCard(
                     manga: manga,
-                    onTap: () => ctx.push('/manga/${manga.id}'),
+                    onTap: () =>
+                        ctx.push('/manga/${manga.sourceId}/${manga.id}'),
                   );
                 },
               );
@@ -298,13 +311,13 @@ class _ErrorRow extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.wifi_off_rounded,
-              color: AppColors.onSurfaceMuted, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            'Could not load $sectionTitle',
-            style: AppTypography.bodySmall,
+          const Icon(
+            Icons.wifi_off_rounded,
+            color: AppColors.onSurfaceMuted,
+            size: 28,
           ),
+          const SizedBox(height: 8),
+          Text('Could not load $sectionTitle', style: AppTypography.bodySmall),
         ],
       ),
     );
