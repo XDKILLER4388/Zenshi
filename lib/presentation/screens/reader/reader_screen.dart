@@ -11,9 +11,10 @@ import '../../../core/constants/app_typography.dart';
 import '../../../domain/entities/app_settings.dart';
 import '../../../domain/entities/page.dart' as manga_page;
 import '../../../domain/entities/reading_progress.dart';
-import '../../providers/mangadex_provider.dart';
+import '../../providers/manga_provider.dart';
 import '../../providers/reader_state_provider.dart';
 import '../../providers/reading_progress_provider.dart';
+import '../../providers/use_case_providers.dart';
 
 /// Full-screen manga reader with real MangaDex pages.
 class ReaderScreen extends ConsumerStatefulWidget {
@@ -21,10 +22,12 @@ class ReaderScreen extends ConsumerStatefulWidget {
     super.key,
     required this.mangaId,
     required this.chapterId,
+    required this.sourceId,
   });
 
   final String mangaId;
   final String chapterId;
+  final String sourceId;
 
   @override
   ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
@@ -75,8 +78,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     _saveProgress(index);
   }
 
-  void _handleTap(TapUpDetails details, BoxConstraints constraints,
-      int totalPages) {
+  void _handleTap(
+    TapUpDetails details,
+    BoxConstraints constraints,
+    int totalPages,
+  ) {
     final x = details.localPosition.dx;
     final width = constraints.maxWidth;
     final notifier = ref.read(readerStateProvider.notifier);
@@ -104,17 +110,21 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   Color _themeBackground(ReaderTheme theme) => switch (theme) {
-        ReaderTheme.defaultLight => Colors.white,
-        ReaderTheme.dark => const Color(0xFF1A1A1A),
-        ReaderTheme.amoled => Colors.black,
-        ReaderTheme.sepia => const Color(0xFFF5E6C8),
-      };
+    ReaderTheme.defaultLight => Colors.white,
+    ReaderTheme.dark => const Color(0xFF1A1A1A),
+    ReaderTheme.amoled => Colors.black,
+    ReaderTheme.sepia => const Color(0xFFF5E6C8),
+  };
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(readerStateProvider);
     final bgColor = _themeBackground(state.theme);
-    final pagesAsync = ref.watch(chapterPagesProvider(widget.chapterId));
+    final pageArgs = PageArgs(
+      chapterId: widget.chapterId,
+      sourceId: widget.sourceId,
+    );
+    final pagesAsync = ref.watch(chapterPagesProvider(pageArgs));
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -141,15 +151,20 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.wifi_off_rounded,
-                    color: Colors.white54, size: 48),
+                const Icon(
+                  Icons.wifi_off_rounded,
+                  color: Colors.white54,
+                  size: 48,
+                ),
                 const SizedBox(height: 16),
-                const Text('Could not load chapter',
-                    style: TextStyle(color: Colors.white70)),
+                const Text(
+                  'Could not load chapter',
+                  style: TextStyle(color: Colors.white70),
+                ),
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: () => ref
-                      .invalidate(chapterPagesProvider(widget.chapterId)),
+                  onPressed: () =>
+                      ref.invalidate(chapterPagesProvider(widget.chapterId)),
                   child: const Text('Retry'),
                 ),
               ],
@@ -164,11 +179,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.image_not_supported_outlined,
-                        color: Colors.white54, size: 48),
+                    const Icon(
+                      Icons.image_not_supported_outlined,
+                      color: Colors.white54,
+                      size: 48,
+                    ),
                     const SizedBox(height: 16),
-                    const Text('No pages found for this chapter',
-                        style: TextStyle(color: Colors.white70)),
+                    const Text(
+                      'No pages found for this chapter',
+                      style: TextStyle(color: Colors.white70),
+                    ),
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: () => context.pop(),
@@ -181,7 +201,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           }
 
           final totalPages = pages.length;
-          final isVertical = state.mode == ReadingMode.verticalScroll ||
+          final isVertical =
+              state.mode == ReadingMode.verticalScroll ||
               state.mode == ReadingMode.webtoon;
 
           return Stack(
@@ -190,8 +211,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               LayoutBuilder(
                 builder: (ctx, constraints) {
                   return GestureDetector(
-                    onTapUp: (d) =>
-                        _handleTap(d, constraints, totalPages),
+                    onTapUp: (d) => _handleTap(d, constraints, totalPages),
                     onHorizontalDragEnd: (d) {
                       if (d.primaryVelocity != null &&
                           d.primaryVelocity! > 0 &&
@@ -203,17 +223,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         ? _VerticalReader(
                             pages: pages,
                             bgColor: bgColor,
-                            isWebtoon:
-                                state.mode == ReadingMode.webtoon,
+                            isWebtoon: state.mode == ReadingMode.webtoon,
                           )
                         : _HorizontalReader(
                             pages: pages,
                             pageController: _pageController,
                             bgColor: bgColor,
-                            isRTL: state.mode ==
-                                ReadingMode.horizontalRTL,
-                            onPageChanged: (i) =>
-                                _onPageChanged(i, totalPages),
+                            isRTL: state.mode == ReadingMode.horizontalRTL,
+                            onPageChanged: (i) => _onPageChanged(i, totalPages),
                           ),
                   );
                 },
@@ -241,20 +258,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     totalPages: totalPages,
                     onPageSliderChanged: (v) {
                       final index = v.round();
-                      ref
-                          .read(readerStateProvider.notifier)
-                          .setPage(index);
+                      ref.read(readerStateProvider.notifier).setPage(index);
                       _pageController.jumpToPage(index);
                     },
-                    onModeChanged: (m) => ref
-                        .read(readerStateProvider.notifier)
-                        .setMode(m),
-                    onThemeChanged: (t) => ref
-                        .read(readerStateProvider.notifier)
-                        .setTheme(t),
+                    onModeChanged: (m) =>
+                        ref.read(readerStateProvider.notifier).setMode(m),
+                    onThemeChanged: (t) =>
+                        ref.read(readerStateProvider.notifier).setTheme(t),
                     onAutoScrollToggle: () {
-                      final notifier =
-                          ref.read(readerStateProvider.notifier);
+                      final notifier = ref.read(readerStateProvider.notifier);
                       notifier.toggleAutoScroll();
                       if (!state.autoScrollActive) {
                         _startAutoScroll(totalPages);
@@ -323,10 +335,7 @@ class _HorizontalReader extends StatelessWidget {
       reverse: isRTL,
       onPageChanged: onPageChanged,
       itemCount: pages.length,
-      itemBuilder: (_, i) => _PageWidget(
-        page: pages[i],
-        bgColor: bgColor,
-      ),
+      itemBuilder: (_, i) => _PageWidget(page: pages[i], bgColor: bgColor),
     );
   }
 }
@@ -349,11 +358,13 @@ class _VerticalReader extends StatelessWidget {
     return SingleChildScrollView(
       child: Column(
         children: pages
-            .map((p) => _PageWidget(
-                  page: p,
-                  bgColor: bgColor,
-                  verticalGap: isWebtoon ? 0 : 4,
-                ))
+            .map(
+              (p) => _PageWidget(
+                page: p,
+                bgColor: bgColor,
+                verticalGap: isWebtoon ? 0 : 4,
+              ),
+            )
             .toList(),
       ),
     );
@@ -404,11 +415,13 @@ class _PageWidget extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.broken_image_outlined,
-                      color: bgColor == Colors.white
-                          ? Colors.grey
-                          : AppColors.onSurfaceMuted,
-                      size: 48),
+                  Icon(
+                    Icons.broken_image_outlined,
+                    color: bgColor == Colors.white
+                        ? Colors.grey
+                        : AppColors.onSurfaceMuted,
+                    size: 48,
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     'Page ${page.index + 1}',
@@ -470,27 +483,27 @@ class _ReaderMenuOverlay extends StatelessWidget {
             ),
             child: SafeArea(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back,
-                          color: Colors.white),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     Expanded(
                       child: Text(
                         'Chapter ${chapterId.split('-').first}',
-                        style: AppTypography.titleSmall
-                            .copyWith(color: Colors.white),
+                        style: AppTypography.titleSmall.copyWith(
+                          color: Colors.white,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
                       '${currentPage + 1} / $totalPages',
-                      style: AppTypography.bodySmall
-                          .copyWith(color: Colors.white70),
+                      style: AppTypography.bodySmall.copyWith(
+                        color: Colors.white70,
+                      ),
                     ),
                     const SizedBox(width: 8),
                   ],
@@ -522,24 +535,29 @@ class _ReaderMenuOverlay extends StatelessWidget {
                     // Page slider
                     Row(
                       children: [
-                        Text('${currentPage + 1}',
-                            style: AppTypography.labelSmall
-                                .copyWith(color: Colors.white70)),
+                        Text(
+                          '${currentPage + 1}',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: Colors.white70,
+                          ),
+                        ),
                         Expanded(
                           child: Slider(
                             value: currentPage.toDouble(),
                             min: 0,
                             max: (totalPages - 1).toDouble(),
-                            divisions:
-                                totalPages > 1 ? totalPages - 1 : 1,
+                            divisions: totalPages > 1 ? totalPages - 1 : 1,
                             activeColor: AppColors.primary,
                             inactiveColor: Colors.white30,
                             onChanged: onPageSliderChanged,
                           ),
                         ),
-                        Text('$totalPages',
-                            style: AppTypography.labelSmall
-                                .copyWith(color: Colors.white70)),
+                        Text(
+                          '$totalPages',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: Colors.white70,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -578,18 +596,18 @@ class _ReaderMenuOverlay extends StatelessWidget {
   }
 
   String _modeLabel(ReadingMode m) => switch (m) {
-        ReadingMode.horizontalRTL => 'RTL',
-        ReadingMode.horizontalLTR => 'LTR',
-        ReadingMode.verticalScroll => 'Vertical',
-        ReadingMode.webtoon => 'Webtoon',
-      };
+    ReadingMode.horizontalRTL => 'RTL',
+    ReadingMode.horizontalLTR => 'LTR',
+    ReadingMode.verticalScroll => 'Vertical',
+    ReadingMode.webtoon => 'Webtoon',
+  };
 
   String _themeLabel(ReaderTheme t) => switch (t) {
-        ReaderTheme.defaultLight => 'Light',
-        ReaderTheme.dark => 'Dark',
-        ReaderTheme.amoled => 'AMOLED',
-        ReaderTheme.sepia => 'Sepia',
-      };
+    ReaderTheme.defaultLight => 'Light',
+    ReaderTheme.dark => 'Dark',
+    ReaderTheme.amoled => 'AMOLED',
+    ReaderTheme.sepia => 'Sepia',
+  };
 
   void _showModeSelector(BuildContext context) {
     showModalBottomSheet(
@@ -677,13 +695,18 @@ class _MenuBtn extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon,
-              color: active ? AppColors.primary : Colors.white, size: 24),
+          Icon(
+            icon,
+            color: active ? AppColors.primary : Colors.white,
+            size: 24,
+          ),
           const SizedBox(height: 2),
-          Text(label,
-              style: AppTypography.labelSmall.copyWith(
-                color: active ? AppColors.primary : Colors.white70,
-              )),
+          Text(
+            label,
+            style: AppTypography.labelSmall.copyWith(
+              color: active ? AppColors.primary : Colors.white70,
+            ),
+          ),
         ],
       ),
     );
@@ -712,8 +735,7 @@ class _BrightnessSliderOverlay extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: Container(
             margin: const EdgeInsets.only(left: 16),
-            padding:
-                const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
             decoration: BoxDecoration(
               color: Colors.black87,
               borderRadius: BorderRadius.circular(24),
@@ -721,8 +743,11 @@ class _BrightnessSliderOverlay extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.brightness_high,
-                    color: Colors.white, size: 20),
+                const Icon(
+                  Icons.brightness_high,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(height: 8),
                 RotatedBox(
                   quarterTurns: 3,
@@ -739,8 +764,7 @@ class _BrightnessSliderOverlay extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Icon(Icons.brightness_low,
-                    color: Colors.white, size: 20),
+                const Icon(Icons.brightness_low, color: Colors.white, size: 20),
               ],
             ),
           ),
@@ -777,9 +801,10 @@ class _ChapterEndOverlay extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('End of Chapter',
-                  style: AppTypography.titleSmall
-                      .copyWith(color: Colors.white)),
+              Text(
+                'End of Chapter',
+                style: AppTypography.titleSmall.copyWith(color: Colors.white),
+              ),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,

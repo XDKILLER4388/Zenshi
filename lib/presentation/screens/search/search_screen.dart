@@ -9,7 +9,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../domain/entities/manga.dart';
-import '../../providers/mangadex_provider.dart';
+import '../../providers/search_provider.dart';
 import '../../widgets/manga_card/manga_card.dart';
 
 const _trendingSearches = [
@@ -296,7 +296,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           manga: manga,
           width: double.infinity,
           height: 200,
-          onTap: () => ctx.push('/manga/${manga.id}'),
+          onTap: () => ctx.push('/manga/${manga.sourceId}/${manga.id}'),
         );
       },
     );

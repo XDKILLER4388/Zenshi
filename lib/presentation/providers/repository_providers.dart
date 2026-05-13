@@ -16,6 +16,7 @@ import '../../domain/repositories/manga_repository.dart';
 import '../../domain/repositories/reader_repository.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../../domain/repositories/sync_repository.dart';
+import '../../data/repositories/extension_repository_impl.dart';
 
 import '../../data/remote/mangadex_service.dart';
 import '../../data/remote/manhwaz_service.dart';
@@ -108,13 +109,13 @@ class _MultiSourceRepository implements MangaRepository {
     }
 
     return switch (sourceId) {
-      'bato' => null,
-      'manganato' => null,
-      'asura' => null,
-      'reaper' => null,
-      'flame' => null,
-      'manhwaz' => null,
-      'manhwa18' => null,
+      'bato' => BatoService.fetchMangaById(id),
+      'manganato' => ManganatoService.fetchMangaById(id),
+      'asura' => AsuraService.fetchMangaById(id),
+      'reaper' => ReaperService.fetchMangaById(id),
+      'flame' => FlameService.fetchMangaById(id),
+      'manhwaz' => ManhwazService.fetchMangaById(id),
+      'manhwa18' => Manhwa18Service.fetchMangaById(id),
       _ => MangaDexService.fetchMangaById(id),
     };
   }
@@ -181,7 +182,7 @@ class _MultiSourceRepository implements MangaRepository {
 
   @override
   Future<List<Chapter>> getChapterList(String mangaId, String sourceId) async {
-    return switch (sourceId) {
+    final chapters = await switch (sourceId) {
       'manhwaz' => ManhwazService.fetchChapterList(mangaId),
       'manhwa18' => Manhwa18Service.fetchChapterList(mangaId),
       'bato' => BatoService.fetchChapterList(mangaId),
@@ -191,6 +192,14 @@ class _MultiSourceRepository implements MangaRepository {
       'flame' => FlameService.fetchChapterList(mangaId),
       _ => MangaDexService.fetchChapterList(mangaId),
     };
+
+    // If no chapters found and it's not MangaDex, try MangaDex as a fallback
+    if (chapters.isEmpty && sourceId != 'mangadex') {
+      // We'd need to search for the title on MangaDex first, but for now let's just return empty
+      return [];
+    }
+
+    return chapters;
   }
 
   @override
@@ -285,9 +294,10 @@ final syncRepositoryProvider = Provider<SyncRepository>((ref) {
 
 // ── Extension ──────────────────────────────────────────────────────────────────
 
-/// Stub [ExtensionRepository] — real implementation added in a later task.
+/// Concrete [ExtensionRepository] using local database.
 final extensionRepositoryProvider = Provider<ExtensionRepository>((ref) {
-  return _StubExtensionRepository();
+  final db = ref.watch(databaseProvider);
+  return ExtensionRepositoryImpl(db.extensionDao);
 });
 
 // ── Settings ───────────────────────────────────────────────────────────────────

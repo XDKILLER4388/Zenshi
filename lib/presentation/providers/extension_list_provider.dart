@@ -1,20 +1,31 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/extension_info.dart';
+import 'use_case_providers.dart';
 
 // ── Extension list notifier ────────────────────────────────────────────────────
 
 class ExtensionListNotifier extends StreamNotifier<List<ExtensionInfo>> {
   @override
   Stream<List<ExtensionInfo>> build() {
-    // Return empty list immediately — no DB access to avoid startup crashes
-    return Stream.value([]);
+    return ref.watch(extensionRepositoryProvider).watchInstalledExtensions();
   }
 
-  Future<void> install(String extensionId) async {}
-  Future<void> uninstall(String extensionId) async {}
-  Future<void> updateExtension(String extensionId) async {}
-  Future<void> checkForUpdates() async {}
+  Future<void> install(String extensionId) async {
+    await ref.read(installExtensionUseCaseProvider).call(extensionId);
+  }
+
+  Future<void> uninstall(String extensionId) async {
+    await ref.read(uninstallExtensionUseCaseProvider).call(extensionId);
+  }
+
+  Future<void> updateExtension(String extensionId) async {
+    // Repository implementation would go here
+  }
+
+  Future<void> checkForUpdates() async {
+    await ref.read(extensionRepositoryProvider).checkForUpdates();
+  }
 }
 
 final extensionListProvider =

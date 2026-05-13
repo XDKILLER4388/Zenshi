@@ -24,43 +24,13 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-# 4. Install on Phone
-Write-Host "--- Installing on Phone via ADB ---" -ForegroundColor Cyan
-$apkPath = "C:\Zenshi\build\app\outputs\flutter-apk\app-release.apk"
-
-# Try to find ADB if not in PATH
-$adbPath = "adb"
-if (-not (Get-Command "adb" -ErrorAction SilentlyContinue)) {
-    $potentialAdb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
-    if (Test-Path $potentialAdb) {
-        $adbPath = $potentialAdb
-        Write-Host "Found ADB at: $adbPath" -ForegroundColor Gray
-    } else {
-        Write-Host "ERROR: ADB not found. Please install Android Platform Tools or add them to your PATH." -ForegroundColor Red
-        exit 1
-    }
-}
-
-# Check if device is connected
-$devices = & $adbPath devices | Select-String -Pattern "\tdevice$"
-if (-not $devices) {
-    Write-Host "ERROR: No authorized device found. Please check USB debugging and authorize the computer." -ForegroundColor Red
-    Write-Host "Current devices status:"
-    & $adbPath devices
+# 4. Install to Phone
+Write-Host "--- Installing to Phone ---" -ForegroundColor Cyan
+$ADB_PATH = "C:\Users\User\AppData\Local\Android\Sdk\platform-tools\adb.exe"
+if (Test-Path $ADB_PATH) {
+    & $ADB_PATH install -r -d "build\app\outputs\flutter-apk\app-release.apk"
 } else {
-    if (Test-Path $apkPath) {
-        Write-Host "Installing APK..."
-        & $adbPath install -r -d $apkPath
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "SUCCESS: App installed on phone." -ForegroundColor Green
-            Write-Host "Launching app..."
-            & $adbPath shell am start -n com.zenshi.zenshi/.MainActivity
-        } else {
-            Write-Host "ERROR: ADB installation failed. Try uninstalling the old version first." -ForegroundColor Red
-        }
-    } else {
-        Write-Host "ERROR: APK not found at $apkPath" -ForegroundColor Red
-    }
+    Write-Host "ERROR: ADB not found at $ADB_PATH" -ForegroundColor Red
 }
 
 Write-Host "--- Deployment Complete ---" -ForegroundColor Green

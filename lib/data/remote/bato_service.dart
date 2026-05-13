@@ -48,6 +48,30 @@ class BatoService {
     }
   }
 
+  static Future<Manga?> fetchMangaById(String id) async {
+    try {
+      final url = '$_base/series/$id';
+      final response = await _client.get(Uri.parse(url), headers: _headers);
+      if (response.statusCode != 200) return null;
+
+      final document = parser.parse(response.body);
+      final title = document.querySelector('h3')?.text.trim() ?? 'Unknown';
+      final coverUrl = document.querySelector('.attr-cover img')?.attributes['src'] ?? '';
+      final description = document.querySelector('.limit-html')?.text.trim() ?? '';
+      
+      return Manga(
+        id: id,
+        sourceId: 'bato',
+        title: title,
+        coverUrl: coverUrl,
+        description: description,
+        status: MangaStatus.unknown,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<List<Chapter>> fetchChapterList(String seriesId) async {
     try {
       final url = '$_base/series/$seriesId';

@@ -29,9 +29,9 @@ abstract final class Routes {
   static const discover = '/home/discover';
   static const library = '/home/library';
   static const downloads = '/home/downloads';
-  static const mangaDetails = '/manga/:id';
-  static const chapterList = '/manga/:id/chapters';
-  static const reader = '/reader/:mangaId/:chapterId';
+  static const mangaDetails = '/manga/:sourceId/:id';
+  static const chapterList = '/manga/:sourceId/:id/chapters';
+  static const reader = '/reader/:sourceId/:mangaId/:chapterId';
   static const search = '/search';
   static const extensions = '/extensions';
   static const notifications = '/notifications';
@@ -98,29 +98,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // ── Manga details ─────────────────────────────────────────────────────
       GoRoute(
-        path: '/manga/:id',
+        path: Routes.mangaDetails,
         name: 'mangaDetails',
         builder: (_, state) => MangaDetailsScreen(
           mangaId: state.pathParameters['id']!,
+          sourceId: state.pathParameters['sourceId']!,
         ),
         routes: [
           GoRoute(
             path: 'chapters',
             name: 'chapterList',
-            builder: (_, state) => ChapterListScreen(
-              mangaId: state.pathParameters['id']!,
-            ),
+            builder: (_, state) =>
+                ChapterListScreen(mangaId: state.pathParameters['id']!),
           ),
         ],
       ),
 
       // ── Reader ────────────────────────────────────────────────────────────
       GoRoute(
-        path: '/reader/:mangaId/:chapterId',
+        path: Routes.reader,
         name: 'reader',
         builder: (_, state) => ReaderScreen(
           mangaId: state.pathParameters['mangaId']!,
           chapterId: state.pathParameters['chapterId']!,
+          sourceId: state.pathParameters['sourceId']!,
         ),
       ),
 
@@ -128,9 +129,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.search,
         name: 'search',
-        builder: (_, state) => SearchScreen(
-          initialQuery: state.extra as String?,
-        ),
+        builder: (_, state) =>
+            SearchScreen(initialQuery: state.extra as String?),
       ),
 
       // ── Extensions ────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:html/parser.dart' as parser;
 import '../../domain/entities/chapter.dart';
 import '../../domain/entities/manga.dart';
 import '../../domain/entities/page.dart';
@@ -9,8 +10,10 @@ class AsuraService {
   static final _client = http.Client();
 
   static const _headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Accept':
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
     'Referer': 'https://asuracomic.net/',
   };
 
@@ -19,9 +22,52 @@ class AsuraService {
       final url = '$_base/search?q=${Uri.encodeComponent(query)}';
       final response = await _client.get(Uri.parse(url), headers: _headers);
       if (response.statusCode != 200) return [];
-      return [];
+
+      final document = parser.parse(response.body);
+      final items = document.querySelectorAll('.item');
+
+      return items.map((item) {
+        final title = item.querySelector('.title')?.text.trim() ?? 'Unknown';
+        final href = item.querySelector('a')?.attributes['href'] ?? '';
+        final id = href.split('/').last;
+        final coverUrl = item.querySelector('img')?.attributes['src'] ?? '';
+
+        return Manga(
+          id: id,
+          sourceId: 'asura',
+          title: title,
+          coverUrl: coverUrl,
+          status: MangaStatus.unknown,
+        );
+      }).toList();
     } catch (_) {
       return [];
+    }
+  }
+
+  static Future<Manga?> fetchMangaById(String id) async {
+    try {
+      final url = '$_base/series/$id';
+      final response = await _client.get(Uri.parse(url), headers: _headers);
+      if (response.statusCode != 200) return null;
+
+      final document = parser.parse(response.body);
+      final title = document.querySelector('h1')?.text.trim() ?? 'Unknown';
+      final coverUrl =
+          document.querySelector('.attr-cover img')?.attributes['src'] ?? '';
+      final description =
+          document.querySelector('.description')?.text.trim() ?? '';
+
+      return Manga(
+        id: id,
+        sourceId: 'asura',
+        title: title,
+        coverUrl: coverUrl,
+        description: description,
+        status: MangaStatus.unknown,
+      );
+    } catch (_) {
+      return null;
     }
   }
 
@@ -30,7 +76,30 @@ class AsuraService {
       final url = '$_base/series/$seriesId';
       final response = await _client.get(Uri.parse(url), headers: _headers);
       if (response.statusCode != 200) return [];
-      return [];
+
+      final document = parser.parse(response.body);
+      final items = document.querySelectorAll('.chapter-item');
+
+      return items.map((item) {
+        final title = item.querySelector('.chapter-name')?.text.trim() ?? '';
+        final href = item.querySelector('a')?.attributes['href'] ?? '';
+        final id = href.split('/').last;
+
+        double chapterNumber = 0;
+        final match = RegExp(r'Chapter\s+(\d+)').firstMatch(title);
+        if (match != null) {
+          chapterNumber = double.tryParse(match.group(1) ?? '0') ?? 0;
+        }
+
+        return Chapter(
+          id: id,
+          mangaId: seriesId,
+          sourceId: 'asura',
+          chapterNumber: chapterNumber,
+          title: title,
+          isRead: false,
+        );
+      }).toList();
     } catch (_) {
       return [];
     }
@@ -41,7 +110,16 @@ class AsuraService {
       final url = '$_base/chapter/$chapterId';
       final response = await _client.get(Uri.parse(url), headers: _headers);
       if (response.statusCode != 200) return [];
-      return [];
+
+      final document = parser.parse(response.body);
+      final images = document.querySelectorAll('.reader-area img');
+
+      return images.asMap().entries.map((entry) {
+        return Page(
+          index: entry.key,
+          imageUrl: entry.value.attributes['src'] ?? '',
+        );
+      }).toList();
     } catch (_) {
       return [];
     }

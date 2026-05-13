@@ -1,0 +1,2 @@
+echo "Terminal test"
+pause

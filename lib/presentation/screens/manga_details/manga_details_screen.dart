@@ -10,13 +10,19 @@ import '../../../core/constants/app_typography.dart';
 import '../../../domain/entities/chapter.dart';
 import '../../../domain/entities/manga.dart';
 import '../../providers/library_provider.dart';
-import '../../providers/mangadex_provider.dart';
+import '../../providers/manga_provider.dart';
+import '../../providers/use_case_providers.dart';
 import '../../widgets/common/skeleton_loader.dart';
 
 class MangaDetailsScreen extends ConsumerStatefulWidget {
-  const MangaDetailsScreen({super.key, required this.mangaId});
+  const MangaDetailsScreen({
+    super.key,
+    required this.mangaId,
+    required this.sourceId,
+  });
 
   final String mangaId;
+  final String sourceId;
 
   @override
   ConsumerState<MangaDetailsScreen> createState() => _MangaDetailsScreenState();
@@ -42,8 +48,9 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final mangaAsync = ref.watch(mangaDetailProvider(widget.mangaId));
-    final chaptersAsync = ref.watch(chapterListByMangaProvider(widget.mangaId));
+    final args = MangaDetailArgs(id: widget.mangaId, sourceId: widget.sourceId);
+    final mangaAsync = ref.watch(mangaDetailProvider(args));
+    final chaptersAsync = ref.watch(chapterListByMangaProvider(args));
     final library = ref.watch(libraryProvider).valueOrNull ?? [];
     final inLibrary = library.any((m) => m.id == widget.mangaId);
 
@@ -57,11 +64,13 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.wifi_off_rounded,
-                  color: AppColors.onSurfaceMuted, size: 48),
+              const Icon(
+                Icons.wifi_off_rounded,
+                color: AppColors.onSurfaceMuted,
+                size: 48,
+              ),
               const SizedBox(height: 16),
-              Text('Could not load manga',
-                  style: AppTypography.bodyMedium),
+              Text('Could not load manga', style: AppTypography.bodyMedium),
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: () =>
@@ -74,8 +83,7 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
         data: (manga) {
           if (manga == null) {
             return Center(
-              child: Text('Manga not found',
-                  style: AppTypography.bodyMedium),
+              child: Text('Manga not found', style: AppTypography.bodyMedium),
             );
           }
 
@@ -83,16 +91,16 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
           final chapters = List<Chapter>.from(sortedChapters);
           // Standard sort: newest first (descending) by default for details view
           if (_sortAscending) {
-            chapters.sort(
-                (a, b) => a.chapterNumber.compareTo(b.chapterNumber));
+            chapters.sort((a, b) => a.chapterNumber.compareTo(b.chapterNumber));
           } else {
-            chapters.sort(
-                (a, b) => b.chapterNumber.compareTo(a.chapterNumber));
+            chapters.sort((a, b) => b.chapterNumber.compareTo(a.chapterNumber));
           }
 
           final firstUnread = chapters.isNotEmpty
-              ? (chapters.lastWhere((c) => !c.isRead,
-                  orElse: () => chapters.last))
+              ? (chapters.lastWhere(
+                  (c) => !c.isRead,
+                  orElse: () => chapters.last,
+                ))
               : null;
 
           return NestedScrollView(
@@ -121,7 +129,8 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
                     description: manga.description!,
                     expanded: _descriptionExpanded,
                     onToggle: () => setState(
-                        () => _descriptionExpanded = !_descriptionExpanded),
+                      () => _descriptionExpanded = !_descriptionExpanded,
+                    ),
                   ),
 
                 // Action buttons
@@ -141,7 +150,8 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
                   onStartReading: () {
                     if (firstUnread != null) {
                       context.push(
-                          '/reader/${widget.mangaId}/${firstUnread.id}');
+                        '/reader/${widget.mangaId}/${firstUnread.id}',
+                      );
                     }
                   },
                 ),
@@ -169,23 +179,32 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
                           itemCount: 8,
                           itemBuilder: (_, __) => Padding(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 6),
-                            child: ShimmerBox(width: double.infinity, height: 48),
+                              horizontal: 16,
+                              vertical: 6,
+                            ),
+                            child: ShimmerBox(
+                              width: double.infinity,
+                              height: 48,
+                            ),
                           ),
                         ),
                         error: (_, __) => Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.wifi_off_rounded,
-                                  color: AppColors.onSurfaceMuted),
+                              const Icon(
+                                Icons.wifi_off_rounded,
+                                color: AppColors.onSurfaceMuted,
+                              ),
                               const SizedBox(height: 8),
-                              Text('Could not load chapters',
-                                  style: AppTypography.bodySmall),
+                              Text(
+                                'Could not load chapters',
+                                style: AppTypography.bodySmall,
+                              ),
                               TextButton(
                                 onPressed: () => ref.invalidate(
-                                    chapterListByMangaProvider(
-                                        widget.mangaId)),
+                                  chapterListByMangaProvider(widget.mangaId),
+                                ),
                                 child: const Text('Retry'),
                               ),
                             ],
@@ -194,10 +213,11 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
                         data: (_) => _ChapterList(
                           chapters: chapters,
                           sortAscending: _sortAscending,
-                          onToggleSort: () => setState(
-                              () => _sortAscending = !_sortAscending),
-                          onTap: (ch) => context
-                              .push('/reader/${widget.mangaId}/${ch.id}'),
+                          onToggleSort: () =>
+                              setState(() => _sortAscending = !_sortAscending),
+                          onTap: (ch) => context.push(
+                            '/reader/${widget.mangaId}/${ch.id}',
+                          ),
                           onLongPress: (ch) => _showContextMenu(context, ch),
                         ),
                       ),
@@ -247,14 +267,18 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
               title: const Text('Download'),
               onTap: () {
                 Navigator.of(context).pop();
-                ref.read(enqueueDownloadUseCaseProvider).call(
+                ref
+                    .read(enqueueDownloadUseCaseProvider)
+                    .call(
                       chapter,
                       '', // Manga title not available here easily without passing it down
                       ImageQuality.high,
                     );
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Downloading Chapter ${chapter.chapterNumber}...'),
+                    content: Text(
+                      'Downloading Chapter ${chapter.chapterNumber}...',
+                    ),
                     backgroundColor: AppColors.primary,
                   ),
                 );
@@ -291,9 +315,8 @@ class _MangaHeader extends StatelessWidget {
             child: CachedNetworkImage(
               imageUrl: manga.coverUrl!,
               fit: BoxFit.cover,
-              errorWidget: (_, __, ___) => Container(
-                color: AppColors.surfaceVariant,
-              ),
+              errorWidget: (_, __, ___) =>
+                  Container(color: AppColors.surfaceVariant),
             ),
           )
         else
@@ -335,9 +358,8 @@ class _MangaHeader extends StatelessWidget {
                       ? CachedNetworkImage(
                           imageUrl: manga.coverUrl!,
                           fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(
-                            color: AppColors.surfaceVariant,
-                          ),
+                          placeholder: (_, __) =>
+                              Container(color: AppColors.surfaceVariant),
                           errorWidget: (_, __, ___) => Container(
                             color: AppColors.surfaceVariant,
                             child: Center(
@@ -394,8 +416,11 @@ class _MangaHeader extends StatelessWidget {
                         _StatusBadge(status: manga.status),
                         if (manga.averageRating != null) ...[
                           const SizedBox(width: 8),
-                          const Icon(Icons.star_rounded,
-                              color: Colors.amber, size: 14),
+                          const Icon(
+                            Icons.star_rounded,
+                            color: Colors.amber,
+                            size: 14,
+                          ),
                           const SizedBox(width: 2),
                           Text(
                             manga.averageRating!.toStringAsFixed(1),
@@ -424,18 +449,18 @@ class _StatusBadge extends StatelessWidget {
   final MangaStatus status;
 
   Color get _color => switch (status) {
-        MangaStatus.ongoing => AppColors.success,
-        MangaStatus.completed => AppColors.secondary,
-        MangaStatus.hiatus => AppColors.warning,
-        MangaStatus.unknown => AppColors.onSurfaceMuted,
-      };
+    MangaStatus.ongoing => AppColors.success,
+    MangaStatus.completed => AppColors.secondary,
+    MangaStatus.hiatus => AppColors.warning,
+    MangaStatus.unknown => AppColors.onSurfaceMuted,
+  };
 
   String get _label => switch (status) {
-        MangaStatus.ongoing => 'Ongoing',
-        MangaStatus.completed => 'Completed',
-        MangaStatus.hiatus => 'Hiatus',
-        MangaStatus.unknown => 'Unknown',
-      };
+    MangaStatus.ongoing => 'Ongoing',
+    MangaStatus.completed => 'Completed',
+    MangaStatus.hiatus => 'Hiatus',
+    MangaStatus.unknown => 'Unknown',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -446,8 +471,10 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: _color.withAlpha(80)),
       ),
-      child: Text(_label,
-          style: AppTypography.labelSmall.copyWith(color: _color)),
+      child: Text(
+        _label,
+        style: AppTypography.labelSmall.copyWith(color: _color),
+      ),
     );
   }
 }
@@ -468,9 +495,10 @@ class _GenreChips extends StatelessWidget {
         itemCount: genres.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (_, i) => Chip(
-          label: Text(genres[i],
-              style: AppTypography.labelSmall
-                  .copyWith(color: AppColors.primary)),
+          label: Text(
+            genres[i],
+            style: AppTypography.labelSmall.copyWith(color: AppColors.primary),
+          ),
           backgroundColor: AppColors.primary.withAlpha(30),
           side: BorderSide(color: AppColors.primary.withAlpha(60)),
           padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -515,8 +543,9 @@ class _DescriptionSection extends StatelessWidget {
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 expanded ? 'Show less' : 'Show more',
-                style: AppTypography.labelMedium
-                    .copyWith(color: AppColors.primary),
+                style: AppTypography.labelMedium.copyWith(
+                  color: AppColors.primary,
+                ),
               ),
             ),
           ),
@@ -553,8 +582,9 @@ class _ActionButtons extends StatelessWidget {
               ),
               label: Text(inLibrary ? 'In Library' : 'Add to Library'),
               style: OutlinedButton.styleFrom(
-                foregroundColor:
-                    inLibrary ? AppColors.primary : AppColors.onSurface,
+                foregroundColor: inLibrary
+                    ? AppColors.primary
+                    : AppColors.onSurface,
                 side: BorderSide(
                   color: inLibrary ? AppColors.primary : AppColors.divider,
                 ),
@@ -602,12 +632,18 @@ class _ChapterList extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.menu_book_outlined,
-                color: AppColors.onSurfaceMuted, size: 48),
+            const Icon(
+              Icons.menu_book_outlined,
+              color: AppColors.onSurfaceMuted,
+              size: 48,
+            ),
             const SizedBox(height: 12),
-            Text('No English chapters available',
-                style: AppTypography.bodyMedium
-                    .copyWith(color: AppColors.onSurfaceMuted)),
+            Text(
+              'No English chapters available',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.onSurfaceMuted,
+              ),
+            ),
           ],
         ),
       );
@@ -620,8 +656,10 @@ class _ChapterList extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('${chapters.length} Chapters',
-                  style: AppTypography.titleSmall),
+              Text(
+                '${chapters.length} Chapters',
+                style: AppTypography.titleSmall,
+              ),
               IconButton(
                 icon: Icon(
                   sortAscending
@@ -650,7 +688,9 @@ class _ChapterList extends StatelessWidget {
                   onTap: () => onTap(ch),
                   onLongPress: () => onLongPress(ch),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 4),
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
                   title: Text(
                     'Chapter ${ch.chapterNumber.toStringAsFixed(ch.chapterNumber % 1 == 0 ? 0 : 1)}${ch.title != null ? ' - ${ch.title}' : ''}',
                     style: AppTypography.titleSmall.copyWith(
@@ -667,10 +707,16 @@ class _ChapterList extends StatelessWidget {
                         )
                       : null,
                   trailing: isRead
-                      ? const Icon(Icons.check_circle_rounded,
-                          color: AppColors.success, size: 18)
-                      : const Icon(Icons.chevron_right,
-                          color: AppColors.onSurfaceMuted, size: 18),
+                      ? const Icon(
+                          Icons.check_circle_rounded,
+                          color: AppColors.success,
+                          size: 18,
+                        )
+                      : const Icon(
+                          Icons.chevron_right,
+                          color: AppColors.onSurfaceMuted,
+                          size: 18,
+                        ),
                 ),
               );
             },
@@ -702,12 +748,18 @@ class _SimilarTab extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.auto_awesome_rounded,
-              size: 64, color: AppColors.onSurfaceMuted.withAlpha(80)),
+          Icon(
+            Icons.auto_awesome_rounded,
+            size: 64,
+            color: AppColors.onSurfaceMuted.withAlpha(80),
+          ),
           const SizedBox(height: 16),
-          Text('Similar titles coming soon',
-              style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.onSurfaceMuted)),
+          Text(
+            'Similar titles coming soon',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.onSurfaceMuted,
+            ),
+          ),
         ],
       ),
     );
