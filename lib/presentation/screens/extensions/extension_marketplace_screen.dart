@@ -59,6 +59,27 @@ final _mockAvailableExtensions = [
     language: 'Multi',
     healthStatus: ExtensionHealthStatus.healthy,
   ),
+  const ExtensionInfo(
+    id: 'manhwa18',
+    name: 'Manhwa18.cc',
+    version: '1.0.0',
+    sourceClass: 'Manhwa18Source',
+    allowedDomains: ['manhwa18.cc', 'manhwa18.com'],
+    sourceType: SourceType.manhwa,
+    language: 'EN',
+    isNsfw: true,
+    healthStatus: ExtensionHealthStatus.healthy,
+  ),
+  const ExtensionInfo(
+    id: 'doki',
+    name: 'Doki',
+    version: '1.0.0',
+    sourceClass: 'DokiSource',
+    allowedDomains: ['dokireader.com'],
+    sourceType: SourceType.manga,
+    language: 'EN',
+    healthStatus: ExtensionHealthStatus.healthy,
+  ),
 ];
 
 // ── Extension marketplace screen ───────────────────────────────────────────────

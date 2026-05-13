@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart';
-import 'package:drift_flutter/drift_flutter.dart';
 
 import '../daos/chapter_dao.dart';
 import '../daos/download_dao.dart';
@@ -97,7 +96,7 @@ class AppDatabase extends _$AppDatabase {
   late final SearchHistoryDao searchHistoryDao = SearchHistoryDao(this);
 }
 
-/// Opens the SQLite database file using drift_flutter's default path.
+/// Opens an in-memory SQLite database (drift_flutter removed for v1.0).
 QueryExecutor _openConnection() {
-  return driftDatabase(name: 'zenshi_db');
+  return NativeDatabase.memory();
 }

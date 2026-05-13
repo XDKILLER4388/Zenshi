@@ -1,7 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/chapter.dart';
 import '../../domain/entities/download_task.dart';
@@ -18,20 +16,12 @@ import '../../domain/repositories/manga_repository.dart';
 import '../../domain/repositories/reader_repository.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../../domain/repositories/sync_repository.dart';
-import '../../infrastructure/auth/secure_storage_service.dart';
 
 // ── Auth ───────────────────────────────────────────────────────────────────────
 
-/// Provides the [AuthRepository] implementation.
-///
-/// Wired to [AuthRepositoryImpl] backed by Supabase Auth and
-/// [SecureStorageService]. Real Supabase initialisation happens in main.dart;
-/// this provider assumes [Supabase.instance] is available.
+/// Stub auth repository — Supabase not initialized in this build.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepositoryImpl(
-    supabase: Supabase.instance.client,
-    storage: SecureStorageService(),
-  );
+  return _StubAuthRepository();
 });
 
 // ── Manga ──────────────────────────────────────────────────────────────────────
@@ -80,6 +70,29 @@ final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
 // These throw [UnimplementedError] for all methods. They exist so that the
 // provider layer compiles and can be wired up before the concrete data-layer
 // implementations are complete.
+
+class _StubAuthRepository implements AuthRepository {
+  @override
+  Future<void> signInWithEmail(String email, String password) async {}
+  @override
+  Future<void> signInWithGoogle() async {}
+  @override
+  Future<void> signInWithDiscord() async {}
+  @override
+  Future<void> signInAsGuest() async {}
+  @override
+  Future<void> signOut() async {}
+  @override
+  Future<void> deleteAccount() async {}
+  @override
+  Stream<AuthState> watchAuthState() => Stream.value(
+        const AuthState(status: AuthStatus.guest),
+      );
+  @override
+  bool get isAuthenticated => false;
+  @override
+  bool get isGuest => true;
+}
 
 class _StubMangaRepository implements MangaRepository {
   @override

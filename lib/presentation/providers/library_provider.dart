@@ -77,16 +77,12 @@ class LibraryFilterState {
 class LibraryNotifier extends StreamNotifier<List<Manga>> {
   @override
   Stream<List<Manga>> build() {
-    return ref.watch(getLibraryUseCaseProvider).call();
+    // Return empty list immediately — no DB access to avoid startup crashes
+    return Stream.value([]);
   }
 
-  Future<void> addToLibrary(Manga manga) async {
-    await ref.read(addToLibraryUseCaseProvider).call(manga);
-  }
-
-  Future<void> removeFromLibrary(String mangaId) async {
-    await ref.read(removeFromLibraryUseCaseProvider).call(mangaId);
-  }
+  Future<void> addToLibrary(Manga manga) async {}
+  Future<void> removeFromLibrary(String mangaId) async {}
 }
 
 /// Provider for [LibraryNotifier].

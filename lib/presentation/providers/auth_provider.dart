@@ -1,43 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/repositories/auth_repository.dart';
-import 'repository_providers.dart';
 
 // ── Auth state notifier ────────────────────────────────────────────────────────
 
-/// Watches the [AuthRepository] stream and exposes sign-in / sign-out actions.
-///
-/// The provider emits [AsyncValue<AuthState>] so the UI can handle loading,
-/// error, and data states uniformly.
 class AuthNotifier extends StreamNotifier<AuthState> {
   @override
   Stream<AuthState> build() {
-    return ref.watch(authRepositoryProvider).watchAuthState();
+    // Return guest state immediately — no external auth to avoid startup crashes
+    return Stream.value(const AuthState(status: AuthStatus.guest));
   }
 
-  Future<void> signInWithEmail(String email, String password) async {
-    await ref.read(authRepositoryProvider).signInWithEmail(email, password);
-  }
-
-  Future<void> signInWithGoogle() async {
-    await ref.read(authRepositoryProvider).signInWithGoogle();
-  }
-
-  Future<void> signInWithDiscord() async {
-    await ref.read(authRepositoryProvider).signInWithDiscord();
-  }
-
-  Future<void> signInAsGuest() async {
-    await ref.read(authRepositoryProvider).signInAsGuest();
-  }
-
-  Future<void> signOut() async {
-    await ref.read(authRepositoryProvider).signOut();
-  }
-
-  Future<void> deleteAccount() async {
-    await ref.read(authRepositoryProvider).deleteAccount();
-  }
+  Future<void> signInWithEmail(String email, String password) async {}
+  Future<void> signInWithGoogle() async {}
+  Future<void> signInWithDiscord() async {}
+  Future<void> signInAsGuest() async {}
+  Future<void> signOut() async {}
+  Future<void> deleteAccount() async {}
 }
 
 /// Provider for [AuthNotifier].

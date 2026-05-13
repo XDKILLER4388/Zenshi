@@ -1,14 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/repositories/sync_repository.dart';
-import 'repository_providers.dart';
 
-// ── Sync status provider ───────────────────────────────────────────────────────
-
-/// Streams the current [SyncStatus] from [SyncRepository].
-///
-/// Emits [AsyncValue<SyncStatus>] so the UI can display idle, syncing, error,
-/// and offline states.
+/// Streams the current [SyncStatus] — returns idle immediately.
 final syncStatusProvider = StreamProvider<SyncStatus>((ref) {
-  return ref.watch(syncRepositoryProvider).watchSyncStatus();
+  return Stream.value(SyncStatus.idle);
 });

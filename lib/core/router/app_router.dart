@@ -18,8 +18,6 @@ import '../../presentation/screens/library/reading_history_screen.dart';
 import '../../presentation/screens/settings/about_screen.dart';
 import '../../presentation/screens/settings/settings_screen.dart';
 import '../../presentation/screens/splash/splash_screen.dart';
-import '../../presentation/providers/auth_provider.dart';
-import '../../domain/repositories/auth_repository.dart';
 
 // ── Route name constants ──────────────────────────────────────────────────────
 
@@ -50,29 +48,10 @@ abstract final class Routes {
 /// Auth redirect logic lives here: unauthenticated users are sent to
 /// [Routes.auth]. Replace the stub flags with real auth state in Task 5.
 final appRouterProvider = Provider<GoRouter>((ref) {
-  // TODO(task-5): replace with real auth state from authProvider.
-  final authState = ref.watch(authProvider).valueOrNull;
-  final isAuthenticated = authState?.status == AuthStatus.authenticated ||
-      authState?.status == AuthStatus.guest;
-  const hasCompletedOnboarding = false; // Still stub — SharedPreferences check happens in SplashScreen
-
   return GoRouter(
     initialLocation: Routes.splash,
     debugLogDiagnostics: false,
-    redirect: (context, state) {
-      final location = state.matchedLocation;
-
-      // Always allow these routes through.
-      if (location == Routes.splash) return null;
-      if (location == Routes.onboarding) return null;
-      if (location == Routes.auth) return null;
-
-      if (!hasCompletedOnboarding) return Routes.onboarding;
-      // ignore: dead_code
-      if (!isAuthenticated) return Routes.auth;
-
-      return null;
-    },
+    // No redirects — splash screen handles navigation logic
     routes: [
       // ── Splash ──────────────────────────────────────────────────────────
       GoRoute(

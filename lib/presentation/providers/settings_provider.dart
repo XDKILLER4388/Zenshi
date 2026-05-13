@@ -9,12 +9,13 @@ import 'repository_providers.dart';
 class SettingsNotifier extends StreamNotifier<AppSettings> {
   @override
   Stream<AppSettings> build() {
-    return ref.watch(settingsRepositoryProvider).watchSettings();
+    // Return defaults immediately — no DB access to avoid startup crashes
+    return Stream.value(AppSettings.defaults);
   }
 
   /// Persists a full [AppSettings] replacement.
   Future<void> save(AppSettings settings) async {
-    await ref.read(settingsRepositoryProvider).updateSettings(settings);
+    // No-op for now — settings are in-memory only
   }
 
   /// Updates only the theme field.
@@ -103,5 +104,8 @@ class SettingsNotifier extends StreamNotifier<AppSettings> {
 }
 
 /// Provider for [SettingsNotifier].
+/// Returns defaults immediately — database sync added in a future release.
 final settingsProvider =
-    StreamNotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
+    StreamNotifierProvider<SettingsNotifier, AppSettings>(() {
+  return SettingsNotifier();
+});

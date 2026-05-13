@@ -9,25 +9,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../domain/entities/manga.dart';
+import '../../providers/mangadex_provider.dart';
 import '../../widgets/manga_card/manga_card.dart';
-
-// ── Mock data ──────────────────────────────────────────────────────────────────
-
-List<Manga> _mockSearch(String query) {
-  if (query.isEmpty) return [];
-  return List.generate(
-    12,
-    (i) => Manga(
-      id: 'search_${query}_$i',
-      sourceId: 'mock',
-      title: '$query: Result ${i + 1}',
-      coverUrl: null,
-      author: 'Author ${i + 1}',
-      status: i.isEven ? MangaStatus.ongoing : MangaStatus.completed,
-      genres: const ['Action', 'Fantasy'],
-    ),
-  );
-}
 
 const _trendingSearches = [
   'One Piece', 'Jujutsu Kaisen', 'Chainsaw Man', 'Spy x Family',
@@ -84,8 +67,7 @@ class SearchScreen extends ConsumerStatefulWidget {
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends ConsumerState<SearchScreen> {
-  final _searchController = TextEditingController();
+class _SearchScreenState extends ConsumerState<SearchScreen> {  final _searchController = TextEditingController();
   final _focusNode = FocusNode();
   Timer? _debounce;
 
@@ -150,14 +132,30 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Future<void> _search(String query) async {
     if (query.isEmpty) return;
     setState(() => _searching = true);
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return;
-    final results = _mockSearch(query);
     await _saveToHistory(query);
-    setState(() {
-      _results = results;
-      _searching = false;
-    });
+    if (!mounted) return;
+    // Use MangaDex real search
+    try {
+      final results = await ref.read(mangaSearchProvider(query).future);
+      if (!mounted) return;
+      
+      // Filter by NSFW toggle
+      final filteredResults = results.where((m) {
+        if (!_filters.showNsfw && m.isNsfw) return false;
+        return true;
+      }).toList();
+
+      setState(() {
+        _results = filteredResults;
+        _searching = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _results = [];
+        _searching = false;
+      });
+    }
   }
 
   void _selectHistory(String query) {

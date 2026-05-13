@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
-import 'package:workmanager/workmanager.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../data/local/daos/download_dao.dart';
@@ -12,21 +11,7 @@ import 'package:drift/drift.dart' show Value;
 // ignore: unused_element
 const _kDownloadTaskName = 'zenshi_chapter_download';
 
-/// Registers the WorkManager callback for background downloads.
-///
-/// Must be annotated with `@pragma('vm:entry-point')` so the Dart AOT
-/// compiler does not tree-shake it.
-@pragma('vm:entry-point')
-void callbackDispatcher() {
-  Workmanager().executeTask((task, inputData) async {
-    // Background download task handler.
-    // In a full implementation this would re-instantiate the DAO and
-    // resume any interrupted downloads.
-    return Future.value(true);
-  });
-}
-
-/// Manages chapter downloads with background support via WorkManager.
+/// Manages chapter downloads.
 ///
 /// Responsibilities:
 /// - Enqueue download tasks to the [DownloadDao] (persisted in SQLite).

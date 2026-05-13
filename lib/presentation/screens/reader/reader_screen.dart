@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,60 +9,13 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../domain/entities/app_settings.dart';
+import '../../../domain/entities/page.dart' as manga_page;
 import '../../../domain/entities/reading_progress.dart';
+import '../../providers/mangadex_provider.dart';
 import '../../providers/reader_state_provider.dart';
 import '../../providers/reading_progress_provider.dart';
 
-// ── Page preloader service ─────────────────────────────────────────────────────
-
-/// Maintains a sliding window of 5 pages (2 behind, current, 3 ahead).
-/// Uses a Map keyed by page index to cache image bytes.
-class PagePreloaderService {
-  PagePreloaderService({required this.totalPages});
-
-  final int totalPages;
-
-  /// Cache: page index → image bytes (null = loading/not loaded)
-  final Map<int, List<int>?> _cache = {};
-
-  static const int _behind = 2;
-  static const int _ahead = 3;
-
-  /// Update the window around [currentIndex], evicting pages outside it.
-  void updateWindow(int currentIndex) {
-    final windowStart = (currentIndex - _behind).clamp(0, totalPages - 1);
-    final windowEnd = (currentIndex + _ahead).clamp(0, totalPages - 1);
-
-    // Evict pages outside window
-    _cache.removeWhere(
-      (k, _) => k < windowStart || k > windowEnd,
-    );
-
-    // Mark pages in window for loading
-    for (var i = windowStart; i <= windowEnd; i++) {
-      if (!_cache.containsKey(i)) {
-        _cache[i] = null; // null = loading
-      }
-    }
-  }
-
-  bool isLoaded(int index) => _cache[index] != null;
-
-  void dispose() {
-    _cache.clear();
-  }
-}
-
-// ── Mock page data ─────────────────────────────────────────────────────────────
-
-const int _kMockPageCount = 20;
-
-// ── Screen ─────────────────────────────────────────────────────────────────────
-
-/// Full-screen manga reader.
-///
-/// Supports horizontal paging (LTR/RTL), vertical scroll, and webtoon modes.
-/// Tap zones: left 1/3 = previous, right 1/3 = next, center = toggle menu.
+/// Full-screen manga reader with real MangaDex pages.
 class ReaderScreen extends ConsumerStatefulWidget {
   const ReaderScreen({
     super.key,
@@ -78,7 +32,6 @@ class ReaderScreen extends ConsumerStatefulWidget {
 
 class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   late final PageController _pageController;
-  late final PagePreloaderService _preloader;
   Timer? _autoScrollTimer;
   double _brightness = 0.5;
   bool _showBrightnessSlider = false;
@@ -86,10 +39,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   void initState() {
     super.initState();
-    _preloader = PagePreloaderService(totalPages: _kMockPageCount);
     _pageController = PageController();
     _enterFullScreen();
-    _preloader.updateWindow(0);
   }
 
   void _enterFullScreen() {
@@ -104,38 +55,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   void dispose() {
     _autoScrollTimer?.cancel();
     _pageController.dispose();
-    _preloader.dispose();
     _exitFullScreen();
     super.dispose();
   }
-
-  // ── Auto-scroll ──────────────────────────────────────────────────────────
-
-  void _startAutoScroll() {
-    final speed = ref.read(readerStateProvider).autoScrollSpeed;
-    final interval = Duration(milliseconds: (11 - speed) * 500);
-    _autoScrollTimer?.cancel();
-    _autoScrollTimer = Timer.periodic(interval, (_) {
-      final state = ref.read(readerStateProvider);
-      if (state.currentPageIndex < _kMockPageCount - 1) {
-        ref.read(readerStateProvider.notifier).nextPage();
-        _pageController.nextPage(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      } else {
-        _stopAutoScroll();
-      }
-    });
-  }
-
-  void _stopAutoScroll() {
-    _autoScrollTimer?.cancel();
-    _autoScrollTimer = null;
-    ref.read(readerStateProvider.notifier).toggleAutoScroll();
-  }
-
-  // ── Progress save ────────────────────────────────────────────────────────
 
   void _saveProgress(int pageIndex) {
     final progress = ReadingProgress(
@@ -148,24 +70,19 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     ref.read(readingProgressProvider(widget.mangaId).notifier).save(progress);
   }
 
-  // ── Page change ──────────────────────────────────────────────────────────
-
-  void _onPageChanged(int index) {
+  void _onPageChanged(int index, int totalPages) {
     ref.read(readerStateProvider.notifier).setPage(index);
-    _preloader.updateWindow(index);
     _saveProgress(index);
   }
 
-  // ── Tap zone handler ─────────────────────────────────────────────────────
-
-  void _handleTap(TapUpDetails details, BoxConstraints constraints) {
+  void _handleTap(TapUpDetails details, BoxConstraints constraints,
+      int totalPages) {
     final x = details.localPosition.dx;
     final width = constraints.maxWidth;
     final notifier = ref.read(readerStateProvider.notifier);
     final state = ref.read(readerStateProvider);
 
     if (x < width / 3) {
-      // Left zone → previous page
       if (state.currentPageIndex > 0) {
         notifier.previousPage();
         _pageController.previousPage(
@@ -174,8 +91,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         );
       }
     } else if (x > width * 2 / 3) {
-      // Right zone → next page
-      if (state.currentPageIndex < _kMockPageCount - 1) {
+      if (state.currentPageIndex < totalPages - 1) {
         notifier.nextPage();
         _pageController.nextPage(
           duration: const Duration(milliseconds: 250),
@@ -183,124 +99,203 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         );
       }
     } else {
-      // Center zone → toggle menu
       notifier.toggleMenu();
     }
   }
 
-  // ── Background color ─────────────────────────────────────────────────────
-
-  Color _themeBackground(ReaderTheme theme) {
-    switch (theme) {
-      case ReaderTheme.defaultLight:
-        return Colors.white;
-      case ReaderTheme.dark:
-        return const Color(0xFF1A1A1A);
-      case ReaderTheme.amoled:
-        return Colors.black;
-      case ReaderTheme.sepia:
-        return const Color(0xFFF5E6C8);
-    }
-  }
+  Color _themeBackground(ReaderTheme theme) => switch (theme) {
+        ReaderTheme.defaultLight => Colors.white,
+        ReaderTheme.dark => const Color(0xFF1A1A1A),
+        ReaderTheme.amoled => Colors.black,
+        ReaderTheme.sepia => const Color(0xFFF5E6C8),
+      };
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(readerStateProvider);
     final bgColor = _themeBackground(state.theme);
-    final isVertical = state.mode == ReadingMode.verticalScroll ||
-        state.mode == ReadingMode.webtoon;
+    final pagesAsync = ref.watch(chapterPagesProvider(widget.chapterId));
 
     return Scaffold(
       backgroundColor: bgColor,
-      body: Stack(
-        children: [
-          // ── Main reading area ──────────────────────────────────────────
-          LayoutBuilder(
-            builder: (ctx, constraints) {
-              return GestureDetector(
-                onTapUp: (d) => _handleTap(d, constraints),
-                onHorizontalDragEnd: (d) {
-                  // Left-edge swipe → brightness slider
-                  if (d.primaryVelocity != null &&
-                      d.primaryVelocity! > 0 &&
-                      !_showBrightnessSlider) {
-                    setState(() => _showBrightnessSlider = true);
-                  }
-                },
-                child: isVertical
-                    ? _VerticalReader(
-                        pageCount: _kMockPageCount,
-                        bgColor: bgColor,
-                        isWebtoon: state.mode == ReadingMode.webtoon,
-                      )
-                    : _HorizontalReader(
-                        pageController: _pageController,
-                        pageCount: _kMockPageCount,
-                        bgColor: bgColor,
-                        isRTL: state.mode == ReadingMode.horizontalRTL,
-                        onPageChanged: _onPageChanged,
-                      ),
-              );
-            },
-          ),
-
-          // ── Brightness slider overlay ──────────────────────────────────
-          if (_showBrightnessSlider)
-            _BrightnessSliderOverlay(
-              brightness: _brightness,
-              onChanged: (v) => setState(() => _brightness = v),
-              onDismiss: () => setState(() => _showBrightnessSlider = false),
+      body: pagesAsync.when(
+        loading: () => Container(
+          color: Colors.black,
+          child: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(color: AppColors.primary),
+                SizedBox(height: 16),
+                Text(
+                  'Loading chapter...',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ],
             ),
+          ),
+        ),
+        error: (_, __) => Container(
+          color: Colors.black,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.wifi_off_rounded,
+                    color: Colors.white54, size: 48),
+                const SizedBox(height: 16),
+                const Text('Could not load chapter',
+                    style: TextStyle(color: Colors.white70)),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: () => ref
+                      .invalidate(chapterPagesProvider(widget.chapterId)),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        data: (pages) {
+          if (pages.isEmpty) {
+            return Container(
+              color: Colors.black,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.image_not_supported_outlined,
+                        color: Colors.white54, size: 48),
+                    const SizedBox(height: 16),
+                    const Text('No pages found for this chapter',
+                        style: TextStyle(color: Colors.white70)),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () => context.pop(),
+                      child: const Text('Go Back'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
 
-          // ── Reader menu overlay ────────────────────────────────────────
-          AnimatedOpacity(
-            opacity: state.menuVisible ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 200),
-            child: IgnorePointer(
-              ignoring: !state.menuVisible,
-              child: _ReaderMenuOverlay(
-                mangaId: widget.mangaId,
-                chapterId: widget.chapterId,
-                state: state,
-                currentPage: state.currentPageIndex,
-                totalPages: _kMockPageCount,
-                onPageSliderChanged: (v) {
-                  final index = v.round();
-                  ref.read(readerStateProvider.notifier).setPage(index);
-                  _pageController.jumpToPage(index);
-                },
-                onModeChanged: (m) =>
-                    ref.read(readerStateProvider.notifier).setMode(m),
-                onThemeChanged: (t) =>
-                    ref.read(readerStateProvider.notifier).setTheme(t),
-                onAutoScrollToggle: () {
-                  final notifier = ref.read(readerStateProvider.notifier);
-                  notifier.toggleAutoScroll();
-                  if (!state.autoScrollActive) {
-                    _startAutoScroll();
-                  } else {
-                    _autoScrollTimer?.cancel();
-                  }
+          final totalPages = pages.length;
+          final isVertical = state.mode == ReadingMode.verticalScroll ||
+              state.mode == ReadingMode.webtoon;
+
+          return Stack(
+            children: [
+              // ── Main reading area ──────────────────────────────────
+              LayoutBuilder(
+                builder: (ctx, constraints) {
+                  return GestureDetector(
+                    onTapUp: (d) =>
+                        _handleTap(d, constraints, totalPages),
+                    onHorizontalDragEnd: (d) {
+                      if (d.primaryVelocity != null &&
+                          d.primaryVelocity! > 0 &&
+                          !_showBrightnessSlider) {
+                        setState(() => _showBrightnessSlider = true);
+                      }
+                    },
+                    child: isVertical
+                        ? _VerticalReader(
+                            pages: pages,
+                            bgColor: bgColor,
+                            isWebtoon:
+                                state.mode == ReadingMode.webtoon,
+                          )
+                        : _HorizontalReader(
+                            pages: pages,
+                            pageController: _pageController,
+                            bgColor: bgColor,
+                            isRTL: state.mode ==
+                                ReadingMode.horizontalRTL,
+                            onPageChanged: (i) =>
+                                _onPageChanged(i, totalPages),
+                          ),
+                  );
                 },
               ),
-            ),
-          ),
 
-          // ── Chapter end overlay ────────────────────────────────────────
-          if (state.currentPageIndex >= _kMockPageCount - 1)
-            _ChapterEndOverlay(
-              onNextChapter: () {},
-              onChapterList: () => context.pop(),
-            ),
+              // ── Brightness slider ──────────────────────────────────
+              if (_showBrightnessSlider)
+                _BrightnessSliderOverlay(
+                  brightness: _brightness,
+                  onChanged: (v) => setState(() => _brightness = v),
+                  onDismiss: () =>
+                      setState(() => _showBrightnessSlider = false),
+                ),
 
-          // ── Chapter start overlay (first page, swipe back) ─────────────
-          if (state.currentPageIndex == 0 && state.menuVisible)
-            _ChapterStartOverlay(
-              onPreviousChapter: () {},
-            ),
-        ],
+              // ── Reader menu ────────────────────────────────────────
+              AnimatedOpacity(
+                opacity: state.menuVisible ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 200),
+                child: IgnorePointer(
+                  ignoring: !state.menuVisible,
+                  child: _ReaderMenuOverlay(
+                    chapterId: widget.chapterId,
+                    state: state,
+                    currentPage: state.currentPageIndex,
+                    totalPages: totalPages,
+                    onPageSliderChanged: (v) {
+                      final index = v.round();
+                      ref
+                          .read(readerStateProvider.notifier)
+                          .setPage(index);
+                      _pageController.jumpToPage(index);
+                    },
+                    onModeChanged: (m) => ref
+                        .read(readerStateProvider.notifier)
+                        .setMode(m),
+                    onThemeChanged: (t) => ref
+                        .read(readerStateProvider.notifier)
+                        .setTheme(t),
+                    onAutoScrollToggle: () {
+                      final notifier =
+                          ref.read(readerStateProvider.notifier);
+                      notifier.toggleAutoScroll();
+                      if (!state.autoScrollActive) {
+                        _startAutoScroll(totalPages);
+                      } else {
+                        _autoScrollTimer?.cancel();
+                      }
+                    },
+                  ),
+                ),
+              ),
+
+              // ── Chapter end overlay ────────────────────────────────
+              if (state.currentPageIndex >= totalPages - 1)
+                _ChapterEndOverlay(
+                  onNextChapter: () {},
+                  onChapterList: () => context.pop(),
+                ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  void _startAutoScroll(int totalPages) {
+    final speed = ref.read(readerStateProvider).autoScrollSpeed;
+    final interval = Duration(milliseconds: (11 - speed) * 500);
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = Timer.periodic(interval, (_) {
+      final state = ref.read(readerStateProvider);
+      if (state.currentPageIndex < totalPages - 1) {
+        ref.read(readerStateProvider.notifier).nextPage();
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        _autoScrollTimer?.cancel();
+        ref.read(readerStateProvider.notifier).toggleAutoScroll();
+      }
+    });
   }
 }
 
@@ -308,15 +303,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
 class _HorizontalReader extends StatelessWidget {
   const _HorizontalReader({
+    required this.pages,
     required this.pageController,
-    required this.pageCount,
     required this.bgColor,
     required this.isRTL,
     required this.onPageChanged,
   });
 
+  final List<manga_page.Page> pages;
   final PageController pageController;
-  final int pageCount;
   final Color bgColor;
   final bool isRTL;
   final ValueChanged<int> onPageChanged;
@@ -327,9 +322,9 @@ class _HorizontalReader extends StatelessWidget {
       controller: pageController,
       reverse: isRTL,
       onPageChanged: onPageChanged,
-      itemCount: pageCount,
-      itemBuilder: (_, i) => _PageView(
-        pageIndex: i,
+      itemCount: pages.length,
+      itemBuilder: (_, i) => _PageWidget(
+        page: pages[i],
         bgColor: bgColor,
       ),
     );
@@ -340,12 +335,12 @@ class _HorizontalReader extends StatelessWidget {
 
 class _VerticalReader extends StatelessWidget {
   const _VerticalReader({
-    required this.pageCount,
+    required this.pages,
     required this.bgColor,
     required this.isWebtoon,
   });
 
-  final int pageCount;
+  final List<manga_page.Page> pages;
   final Color bgColor;
   final bool isWebtoon;
 
@@ -353,29 +348,28 @@ class _VerticalReader extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
-        children: List.generate(
-          pageCount,
-          (i) => _PageView(
-            pageIndex: i,
-            bgColor: bgColor,
-            verticalGap: isWebtoon ? 0 : 8,
-          ),
-        ),
+        children: pages
+            .map((p) => _PageWidget(
+                  page: p,
+                  bgColor: bgColor,
+                  verticalGap: isWebtoon ? 0 : 4,
+                ))
+            .toList(),
       ),
     );
   }
 }
 
-// ── Single page view ───────────────────────────────────────────────────────────
+// ── Single page widget ─────────────────────────────────────────────────────────
 
-class _PageView extends StatelessWidget {
-  const _PageView({
-    required this.pageIndex,
+class _PageWidget extends StatelessWidget {
+  const _PageWidget({
+    required this.page,
     required this.bgColor,
     this.verticalGap = 0,
   });
 
-  final int pageIndex;
+  final manga_page.Page page;
   final Color bgColor;
   final double verticalGap;
 
@@ -387,27 +381,40 @@ class _PageView extends StatelessWidget {
       child: InteractiveViewer(
         minScale: 1.0,
         maxScale: 5.0,
-        child: AspectRatio(
-          aspectRatio: 0.7,
-          child: Container(
-            color: bgColor,
-            child: Center(
+        child: CachedNetworkImage(
+          imageUrl: page.imageUrl,
+          fit: BoxFit.contain,
+          width: double.infinity,
+          placeholder: (_, __) => AspectRatio(
+            aspectRatio: 0.7,
+            child: Container(
+              color: bgColor,
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.primary,
+                  strokeWidth: 2,
+                ),
+              ),
+            ),
+          ),
+          errorWidget: (_, __, ___) => AspectRatio(
+            aspectRatio: 0.7,
+            child: Container(
+              color: bgColor,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.image_outlined,
-                    size: 64,
-                    color: bgColor == Colors.white
-                        ? Colors.grey.shade300
-                        : AppColors.surfaceVariant,
-                  ),
+                  Icon(Icons.broken_image_outlined,
+                      color: bgColor == Colors.white
+                          ? Colors.grey
+                          : AppColors.onSurfaceMuted,
+                      size: 48),
                   const SizedBox(height: 8),
                   Text(
-                    'Page ${pageIndex + 1}',
-                    style: AppTypography.bodyMedium.copyWith(
+                    'Page ${page.index + 1}',
+                    style: TextStyle(
                       color: bgColor == Colors.white
-                          ? Colors.grey.shade400
+                          ? Colors.grey
                           : AppColors.onSurfaceMuted,
                     ),
                   ),
@@ -425,7 +432,6 @@ class _PageView extends StatelessWidget {
 
 class _ReaderMenuOverlay extends StatelessWidget {
   const _ReaderMenuOverlay({
-    required this.mangaId,
     required this.chapterId,
     required this.state,
     required this.currentPage,
@@ -436,7 +442,6 @@ class _ReaderMenuOverlay extends StatelessWidget {
     required this.onAutoScrollToggle,
   });
 
-  final String mangaId;
   final String chapterId;
   final ReaderState state;
   final int currentPage;
@@ -450,7 +455,7 @@ class _ReaderMenuOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // ── Top bar ──────────────────────────────────────────────────────
+        // Top bar
         Positioned(
           top: 0,
           left: 0,
@@ -465,39 +470,29 @@ class _ReaderMenuOverlay extends StatelessWidget {
             ),
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: const Icon(Icons.arrow_back,
+                          color: Colors.white),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Manga Title',
-                            style: AppTypography.titleSmall.copyWith(
-                              color: Colors.white,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            'Chapter ${chapterId.split('_').last}',
-                            style: AppTypography.bodySmall.copyWith(
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        'Chapter ${chapterId.split('-').first}',
+                        style: AppTypography.titleSmall
+                            .copyWith(color: Colors.white),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.settings_outlined,
-                          color: Colors.white),
-                      onPressed: () {},
+                    Text(
+                      '${currentPage + 1} / $totalPages',
+                      style: AppTypography.bodySmall
+                          .copyWith(color: Colors.white70),
                     ),
+                    const SizedBox(width: 8),
                   ],
                 ),
               ),
@@ -505,7 +500,7 @@ class _ReaderMenuOverlay extends StatelessWidget {
           ),
         ),
 
-        // ── Bottom bar ───────────────────────────────────────────────────
+        // Bottom bar
         Positioned(
           bottom: 0,
           left: 0,
@@ -527,50 +522,42 @@ class _ReaderMenuOverlay extends StatelessWidget {
                     // Page slider
                     Row(
                       children: [
-                        Text(
-                          '${currentPage + 1}',
-                          style: AppTypography.labelSmall.copyWith(
-                            color: Colors.white70,
-                          ),
-                        ),
+                        Text('${currentPage + 1}',
+                            style: AppTypography.labelSmall
+                                .copyWith(color: Colors.white70)),
                         Expanded(
                           child: Slider(
                             value: currentPage.toDouble(),
                             min: 0,
                             max: (totalPages - 1).toDouble(),
-                            divisions: totalPages - 1,
+                            divisions:
+                                totalPages > 1 ? totalPages - 1 : 1,
                             activeColor: AppColors.primary,
                             inactiveColor: Colors.white30,
                             onChanged: onPageSliderChanged,
                           ),
                         ),
-                        Text(
-                          '$totalPages',
-                          style: AppTypography.labelSmall.copyWith(
-                            color: Colors.white70,
-                          ),
-                        ),
+                        Text('$totalPages',
+                            style: AppTypography.labelSmall
+                                .copyWith(color: Colors.white70)),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    // Mode and theme selectors
+                    const SizedBox(height: 4),
+                    // Mode and theme
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        // Reading mode
-                        _MenuIconButton(
+                        _MenuBtn(
                           icon: Icons.swap_horiz_rounded,
                           label: _modeLabel(state.mode),
                           onTap: () => _showModeSelector(context),
                         ),
-                        // Theme
-                        _MenuIconButton(
+                        _MenuBtn(
                           icon: Icons.palette_outlined,
                           label: _themeLabel(state.theme),
                           onTap: () => _showThemeSelector(context),
                         ),
-                        // Auto-scroll
-                        _MenuIconButton(
+                        _MenuBtn(
                           icon: state.autoScrollActive
                               ? Icons.pause_circle_outline
                               : Icons.play_circle_outline,
@@ -590,31 +577,19 @@ class _ReaderMenuOverlay extends StatelessWidget {
     );
   }
 
-  String _modeLabel(ReadingMode mode) {
-    switch (mode) {
-      case ReadingMode.horizontalRTL:
-        return 'RTL';
-      case ReadingMode.horizontalLTR:
-        return 'LTR';
-      case ReadingMode.verticalScroll:
-        return 'Vertical';
-      case ReadingMode.webtoon:
-        return 'Webtoon';
-    }
-  }
+  String _modeLabel(ReadingMode m) => switch (m) {
+        ReadingMode.horizontalRTL => 'RTL',
+        ReadingMode.horizontalLTR => 'LTR',
+        ReadingMode.verticalScroll => 'Vertical',
+        ReadingMode.webtoon => 'Webtoon',
+      };
 
-  String _themeLabel(ReaderTheme theme) {
-    switch (theme) {
-      case ReaderTheme.defaultLight:
-        return 'Light';
-      case ReaderTheme.dark:
-        return 'Dark';
-      case ReaderTheme.amoled:
-        return 'AMOLED';
-      case ReaderTheme.sepia:
-        return 'Sepia';
-    }
-  }
+  String _themeLabel(ReaderTheme t) => switch (t) {
+        ReaderTheme.defaultLight => 'Light',
+        ReaderTheme.dark => 'Dark',
+        ReaderTheme.amoled => 'AMOLED',
+        ReaderTheme.sepia => 'Sepia',
+      };
 
   void _showModeSelector(BuildContext context) {
     showModalBottomSheet(
@@ -623,12 +598,28 @@ class _ReaderMenuOverlay extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _ModeSelector(
-        current: state.mode,
-        onSelect: (m) {
-          onModeChanged(m);
-          Navigator.of(context).pop();
-        },
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Reading Mode', style: AppTypography.titleMedium),
+            ),
+            for (final m in ReadingMode.values)
+              ListTile(
+                title: Text(_modeLabel(m)),
+                trailing: state.mode == m
+                    ? const Icon(Icons.check, color: AppColors.primary)
+                    : null,
+                onTap: () {
+                  onModeChanged(m);
+                  Navigator.of(context).pop();
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
@@ -640,27 +631,40 @@ class _ReaderMenuOverlay extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _ThemeSelector(
-        current: state.theme,
-        onSelect: (t) {
-          onThemeChanged(t);
-          Navigator.of(context).pop();
-        },
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Reader Theme', style: AppTypography.titleMedium),
+            ),
+            for (final t in ReaderTheme.values)
+              ListTile(
+                title: Text(_themeLabel(t)),
+                trailing: state.theme == t
+                    ? const Icon(Icons.check, color: AppColors.primary)
+                    : null,
+                onTap: () {
+                  onThemeChanged(t);
+                  Navigator.of(context).pop();
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ── Menu icon button ───────────────────────────────────────────────────────────
-
-class _MenuIconButton extends StatelessWidget {
-  const _MenuIconButton({
+class _MenuBtn extends StatelessWidget {
+  const _MenuBtn({
     required this.icon,
     required this.label,
     required this.onTap,
     this.active = false,
   });
-
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -673,120 +677,20 @@ class _MenuIconButton extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: active ? AppColors.primary : Colors.white,
-            size: 24,
-          ),
+          Icon(icon,
+              color: active ? AppColors.primary : Colors.white, size: 24),
           const SizedBox(height: 2),
-          Text(
-            label,
-            style: AppTypography.labelSmall.copyWith(
-              color: active ? AppColors.primary : Colors.white70,
-            ),
-          ),
+          Text(label,
+              style: AppTypography.labelSmall.copyWith(
+                color: active ? AppColors.primary : Colors.white70,
+              )),
         ],
       ),
     );
   }
 }
 
-// ── Mode selector ──────────────────────────────────────────────────────────────
-
-class _ModeSelector extends StatelessWidget {
-  const _ModeSelector({required this.current, required this.onSelect});
-
-  final ReadingMode current;
-  final ValueChanged<ReadingMode> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    final modes = [
-      (ReadingMode.horizontalRTL, 'Right to Left', Icons.arrow_back),
-      (ReadingMode.horizontalLTR, 'Left to Right', Icons.arrow_forward),
-      (ReadingMode.verticalScroll, 'Vertical Scroll', Icons.swap_vert),
-      (ReadingMode.webtoon, 'Webtoon', Icons.view_day_outlined),
-    ];
-
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text('Reading Mode', style: AppTypography.titleMedium),
-          ),
-          ...modes.map(
-            (m) => ListTile(
-              leading: Icon(m.$3,
-                  color: current == m.$1
-                      ? AppColors.primary
-                      : AppColors.onSurfaceMuted),
-              title: Text(m.$2),
-              trailing: current == m.$1
-                  ? const Icon(Icons.check, color: AppColors.primary)
-                  : null,
-              onTap: () => onSelect(m.$1),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Theme selector ─────────────────────────────────────────────────────────────
-
-class _ThemeSelector extends StatelessWidget {
-  const _ThemeSelector({required this.current, required this.onSelect});
-
-  final ReaderTheme current;
-  final ValueChanged<ReaderTheme> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    final themes = [
-      (ReaderTheme.defaultLight, 'Light', Colors.white),
-      (ReaderTheme.dark, 'Dark', const Color(0xFF1A1A1A)),
-      (ReaderTheme.amoled, 'AMOLED', Colors.black),
-      (ReaderTheme.sepia, 'Sepia', const Color(0xFFF5E6C8)),
-    ];
-
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text('Reader Theme', style: AppTypography.titleMedium),
-          ),
-          ...themes.map(
-            (t) => ListTile(
-              leading: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: t.$3,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.divider),
-                ),
-              ),
-              title: Text(t.$2),
-              trailing: current == t.$1
-                  ? const Icon(Icons.check, color: AppColors.primary)
-                  : null,
-              onTap: () => onSelect(t.$1),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Brightness slider overlay ──────────────────────────────────────────────────
+// ── Brightness slider ──────────────────────────────────────────────────────────
 
 class _BrightnessSliderOverlay extends StatelessWidget {
   const _BrightnessSliderOverlay({
@@ -794,7 +698,6 @@ class _BrightnessSliderOverlay extends StatelessWidget {
     required this.onChanged,
     required this.onDismiss,
   });
-
   final double brightness;
   final ValueChanged<double> onChanged;
   final VoidCallback onDismiss;
@@ -809,7 +712,8 @@ class _BrightnessSliderOverlay extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: Container(
             margin: const EdgeInsets.only(left: 16),
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+            padding:
+                const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
             decoration: BoxDecoration(
               color: Colors.black87,
               borderRadius: BorderRadius.circular(24),
@@ -817,7 +721,8 @@ class _BrightnessSliderOverlay extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.brightness_high, color: Colors.white, size: 20),
+                const Icon(Icons.brightness_high,
+                    color: Colors.white, size: 20),
                 const SizedBox(height: 8),
                 RotatedBox(
                   quarterTurns: 3,
@@ -834,7 +739,8 @@ class _BrightnessSliderOverlay extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Icon(Icons.brightness_low, color: Colors.white, size: 20),
+                const Icon(Icons.brightness_low,
+                    color: Colors.white, size: 20),
               ],
             ),
           ),
@@ -851,7 +757,6 @@ class _ChapterEndOverlay extends StatelessWidget {
     required this.onNextChapter,
     required this.onChapterList,
   });
-
   final VoidCallback onNextChapter;
   final VoidCallback onChapterList;
 
@@ -872,10 +777,9 @@ class _ChapterEndOverlay extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'End of Chapter',
-                style: AppTypography.titleSmall.copyWith(color: Colors.white),
-              ),
+              Text('End of Chapter',
+                  style: AppTypography.titleSmall
+                      .copyWith(color: Colors.white)),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -895,47 +799,6 @@ class _ChapterEndOverlay extends StatelessWidget {
                     label: const Text('Next Chapter'),
                   ),
                 ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Chapter start overlay ──────────────────────────────────────────────────────
-
-class _ChapterStartOverlay extends StatelessWidget {
-  const _ChapterStartOverlay({required this.onPreviousChapter});
-
-  final VoidCallback onPreviousChapter;
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      top: 80,
-      left: 0,
-      right: 0,
-      child: Center(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 32),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface.withAlpha(230),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              OutlinedButton.icon(
-                onPressed: onPreviousChapter,
-                icon: const Icon(Icons.skip_previous, size: 16),
-                label: const Text('Previous Chapter'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white30),
-                ),
               ),
             ],
           ),

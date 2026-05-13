@@ -10,23 +10,13 @@ import 'repository_providers.dart';
 class DownloadQueueNotifier extends StreamNotifier<List<DownloadTask>> {
   @override
   Stream<List<DownloadTask>> build() {
-    return ref.watch(downloadRepositoryProvider).watchDownloadQueue();
+    // Return empty list immediately — no DB access to avoid startup crashes
+    return Stream.value([]);
   }
 
-  /// Pauses the download identified by [taskId].
-  Future<void> pauseDownload(String taskId) async {
-    await ref.read(downloadRepositoryProvider).pauseDownload(taskId);
-  }
-
-  /// Resumes a paused download identified by [taskId].
-  Future<void> resumeDownload(String taskId) async {
-    await ref.read(downloadRepositoryProvider).resumeDownload(taskId);
-  }
-
-  /// Deletes the download task and any partially downloaded files.
-  Future<void> deleteDownload(String taskId) async {
-    await ref.read(downloadRepositoryProvider).deleteDownload(taskId);
-  }
+  Future<void> pauseDownload(String taskId) async {}
+  Future<void> resumeDownload(String taskId) async {}
+  Future<void> deleteDownload(String taskId) async {}
 }
 
 /// Provider for [DownloadQueueNotifier].

@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:local_auth/local_auth.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_typography.dart';
@@ -48,27 +47,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   // ── Private library auth ───────────────────────────────────────────────
 
   Future<void> _unlockPrivateLibrary() async {
-    final auth = LocalAuthentication();
-    try {
-      final canCheck = await auth.canCheckBiometrics;
-      if (!canCheck) {
-        // Fall back to PIN dialog if biometrics unavailable.
-        await _showPinDialog();
-        return;
-      }
-      final authenticated = await auth.authenticate(
-        localizedReason: 'Authenticate to access Private Library',
-        options: const AuthenticationOptions(
-          biometricOnly: false,
-          stickyAuth: true,
-        ),
-      );
-      if (authenticated && mounted) {
-        setState(() => _privateUnlocked = true);
-      }
-    } catch (_) {
-      await _showPinDialog();
-    }
+    // local_auth removed for v1.0 — use PIN dialog only
+    await _showPinDialog();
   }
 
   Future<void> _showPinDialog() async {
