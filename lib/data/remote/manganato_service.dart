@@ -18,6 +18,35 @@ class ManganatoService {
     'Referer': 'https://manganato.com/',
   };
 
+  static Future<List<Manga>> fetchLatest() async {
+    try {
+      const url = 'https://manganato.com/genre-all';
+      final response = await _client.get(Uri.parse(url), headers: _headers);
+      if (response.statusCode != 200) return [];
+
+      final document = parser.parse(response.body);
+      final items = document.querySelectorAll('.content-genres-item');
+
+      return items.map((item) {
+        final titleLink = item.querySelector('.genres-item-name');
+        final title = titleLink?.text.trim() ?? 'Unknown';
+        final href = titleLink?.attributes['href'] ?? '';
+        final id = href.split('/').where((s) => s.isNotEmpty).last;
+        final coverUrl = item.querySelector('img')?.attributes['src'] ?? '';
+
+        return Manga(
+          id: id,
+          sourceId: 'manganato',
+          title: title,
+          coverUrl: coverUrl,
+          status: MangaStatus.unknown,
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   static Future<List<Manga>> search(String query) async {
     try {
       // Manganato search uses underscores

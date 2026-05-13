@@ -17,6 +17,34 @@ class FlameService {
     'Referer': 'https://flamecomics.com/',
   };
 
+  static Future<List<Manga>> fetchLatest() async {
+    try {
+      final url = '$_base';
+      final response = await _client.get(Uri.parse(url), headers: _headers);
+      if (response.statusCode != 200) return [];
+
+      final document = parser.parse(response.body);
+      final items = document.querySelectorAll('.listupd .bs');
+
+      return items.map((item) {
+        final title = item.querySelector('.tt')?.text.trim() ?? 'Unknown';
+        final href = item.querySelector('a')?.attributes['href'] ?? '';
+        final id = href.split('/').where((s) => s.isNotEmpty).last;
+        final coverUrl = item.querySelector('img')?.attributes['src'] ?? '';
+
+        return Manga(
+          id: id,
+          sourceId: 'flame',
+          title: title,
+          coverUrl: coverUrl,
+          status: MangaStatus.unknown,
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   static Future<List<Manga>> search(String query) async {
     try {
       final url = '$_base/?s=${Uri.encodeComponent(query)}';
@@ -53,9 +81,12 @@ class FlameService {
       if (response.statusCode != 200) return null;
 
       final document = parser.parse(response.body);
-      final title = document.querySelector('h1.entry-title')?.text.trim() ?? 'Unknown';
-      final coverUrl = document.querySelector('.thumb img')?.attributes['src'] ?? '';
-      final description = document.querySelector('.entry-content p')?.text.trim() ?? '';
+      final title =
+          document.querySelector('h1.entry-title')?.text.trim() ?? 'Unknown';
+      final coverUrl =
+          document.querySelector('.thumb img')?.attributes['src'] ?? '';
+      final description =
+          document.querySelector('.entry-content p')?.text.trim() ?? '';
 
       return Manga(
         id: id,
@@ -86,8 +117,10 @@ class FlameService {
         final id = href.split('/').where((s) => s.isNotEmpty).last;
 
         double chapterNumber = 0;
-        final match = RegExp(r'Chapter\s*(\d+\.?\d*)', caseSensitive: false)
-            .firstMatch(title);
+        final match = RegExp(
+          r'Chapter\s*(\d+\.?\d*)',
+          caseSensitive: false,
+        ).firstMatch(title);
         if (match != null) {
           chapterNumber = double.tryParse(match.group(1) ?? '0') ?? 0;
         }
@@ -116,22 +149,27 @@ class FlameService {
       if (response.statusCode != 200) return [];
 
       final document = parser.parse(response.body);
-      
-      // Flame Comics uses readerarea or specific entry-content images
-      final images = document.querySelectorAll('#readerarea img, .entry-content img, .reader-area img');
 
-      return images.asMap().entries.map((entry) {
-        final img = entry.value;
-        final imageUrl = img.attributes['src'] ?? 
-                        img.attributes['data-src'] ?? 
-                        img.attributes['data-lazy-src'] ?? 
-                        '';
-                        
-        return Page(
-          index: entry.key,
-          imageUrl: imageUrl.trim(),
-        );
-      }).where((p) => p.imageUrl.isNotEmpty).toList();
+      // Flame Comics uses readerarea or specific entry-content images
+      final images = document.querySelectorAll(
+        '#readerarea img, .entry-content img, .reader-area img',
+      );
+
+      return images
+          .asMap()
+          .entries
+          .map((entry) {
+            final img = entry.value;
+            final imageUrl =
+                img.attributes['src'] ??
+                img.attributes['data-src'] ??
+                img.attributes['data-lazy-src'] ??
+                '';
+
+            return Page(index: entry.key, imageUrl: imageUrl.trim());
+          })
+          .where((p) => p.imageUrl.isNotEmpty)
+          .toList();
     } catch (_) {
       return [];
     }

@@ -17,6 +17,34 @@ class ReaperService {
     'Referer': 'https://reaperscans.com/',
   };
 
+  static Future<List<Manga>> fetchLatest() async {
+    try {
+      final url = '$_base';
+      final response = await _client.get(Uri.parse(url), headers: _headers);
+      if (response.statusCode != 200) return [];
+
+      final document = parser.parse(response.body);
+      final items = document.querySelectorAll('.listupd .bs');
+
+      return items.map((item) {
+        final title = item.querySelector('.tt')?.text.trim() ?? 'Unknown';
+        final href = item.querySelector('a')?.attributes['href'] ?? '';
+        final id = href.split('/').where((s) => s.isNotEmpty).last;
+        final coverUrl = item.querySelector('img')?.attributes['src'] ?? '';
+
+        return Manga(
+          id: id,
+          sourceId: 'reaper',
+          title: title,
+          coverUrl: coverUrl,
+          status: MangaStatus.unknown,
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   static Future<List<Manga>> search(String query) async {
     try {
       final url = '$_base/search?query=${Uri.encodeComponent(query)}';

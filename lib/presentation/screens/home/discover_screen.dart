@@ -7,26 +7,14 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../domain/entities/manga.dart';
-import '../../providers/mangadex_provider.dart';
+import '../../providers/discovery_provider.dart';
 import '../../widgets/common/skeleton_loader.dart';
 import '../../widgets/manga_card/manga_card.dart';
 
 const _genres = [
-  'Action',
-  'Romance',
-  'Fantasy',
-  'Horror',
-  'Comedy',
-  'Sci-Fi',
-  'Slice of Life',
-  'Sports',
-  'Mystery',
-  'Thriller',
-  'Isekai',
-  'Mecha',
-  'Historical',
-  'Supernatural',
-  'Drama',
+  'Action', 'Romance', 'Fantasy', 'Horror', 'Comedy',
+  'Sci-Fi', 'Slice of Life', 'Sports', 'Mystery', 'Thriller',
+  'Isekai', 'Mecha', 'Historical', 'Supernatural', 'Drama',
 ];
 
 class DiscoverScreen extends ConsumerWidget {
@@ -34,22 +22,18 @@ class DiscoverScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final trending = ref.watch(trendingProvider);
-    final popular = ref.watch(popularMangaProvider);
-    final manhwa = ref.watch(popularManhwaProvider);
-    final manhua = ref.watch(popularManhuaProvider);
-    final webtoons = ref.watch(popularWebtoonsProvider);
-    final recent = ref.watch(recentlyUpdatedProvider);
-    final newReleases = ref.watch(newReleasesProvider);
-    final topRated = ref.watch(topRatedProvider);
-    final seasonal = ref.watch(seasonalProvider);
+    final asura = ref.watch(asuraLatestProvider);
+    final reaper = ref.watch(reaperLatestProvider);
+    final flame = ref.watch(flameLatestProvider);
+    final mangadex = ref.watch(mangadexPopularProvider);
+    final manganato = ref.watch(manganatoLatestProvider);
 
     // Collect all loaded manga for random pick
     final allLoaded = [
-      ...trending.valueOrNull ?? [],
-      ...popular.valueOrNull ?? [],
-      ...manhwa.valueOrNull ?? [],
-      ...manhua.valueOrNull ?? [],
+      ...asura.valueOrNull ?? [],
+      ...reaper.valueOrNull ?? [],
+      ...flame.valueOrNull ?? [],
+      ...mangadex.valueOrNull ?? [],
     ];
 
     return Scaffold(
@@ -69,102 +53,63 @@ class DiscoverScreen extends ConsumerWidget {
         color: AppColors.primary,
         backgroundColor: AppColors.surface,
         onRefresh: () async {
-          ref.invalidate(trendingProvider);
-          ref.invalidate(popularMangaProvider);
-          ref.invalidate(popularManhwaProvider);
-          ref.invalidate(popularManhuaProvider);
-          ref.invalidate(popularWebtoonsProvider);
-          ref.invalidate(recentlyUpdatedProvider);
-          ref.invalidate(newReleasesProvider);
-          ref.invalidate(topRatedProvider);
-          ref.invalidate(seasonalProvider);
+          ref.invalidate(asuraLatestProvider);
+          ref.invalidate(reaperLatestProvider);
+          ref.invalidate(flameLatestProvider);
+          ref.invalidate(mangadexPopularProvider);
+          ref.invalidate(manganatoLatestProvider);
         },
         child: CustomScrollView(
           slivers: [
             // Genre chips
             SliverToBoxAdapter(child: _GenreChips()),
 
-            // Trending Today
+            // Asura Scans
             SliverToBoxAdapter(
               child: _MangaSection(
-                title: 'Trending Today',
+                title: 'Asura Scans',
+                badge: '⚡',
+                asyncValue: asura,
+              ),
+            ),
+
+            // Reaper Scans
+            SliverToBoxAdapter(
+              child: _MangaSection(
+                title: 'Reaper Scans',
+                badge: '💀',
+                asyncValue: reaper,
+              ),
+            ),
+
+            // Flame Comics
+            SliverToBoxAdapter(
+              child: _MangaSection(
+                title: 'Flame Comics',
                 badge: '🔥',
-                asyncValue: trending,
+                asyncValue: flame,
               ),
             ),
 
-            // Popular Manga (Japanese)
+            // Manganato
             SliverToBoxAdapter(
               child: _MangaSection(
-                title: 'Popular Manga',
-                badge: '🇯🇵',
-                asyncValue: popular,
+                title: 'Manganato',
+                badge: '📚',
+                asyncValue: manganato,
               ),
             ),
 
-            // Popular Manhwa (Korean)
+            // MangaDex
             SliverToBoxAdapter(
               child: _MangaSection(
-                title: 'Popular Manhwa',
-                badge: '🇰🇷',
-                asyncValue: manhwa,
+                title: 'MangaDex Popular',
+                badge: '🌐',
+                asyncValue: mangadex,
               ),
             ),
 
-            // Popular Manhua (Chinese)
-            SliverToBoxAdapter(
-              child: _MangaSection(
-                title: 'Popular Manhua',
-                badge: '🇨🇳',
-                asyncValue: manhua,
-              ),
-            ),
-
-            // Webtoons
-            SliverToBoxAdapter(
-              child: _MangaSection(
-                title: 'Webtoons',
-                badge: '📱',
-                asyncValue: webtoons,
-              ),
-            ),
-
-            // Recently Updated
-            SliverToBoxAdapter(
-              child: _MangaSection(
-                title: 'Recently Updated',
-                badge: '🆕',
-                asyncValue: recent,
-              ),
-            ),
-
-            // New Releases
-            SliverToBoxAdapter(
-              child: _MangaSection(
-                title: 'New Releases',
-                asyncValue: newReleases,
-              ),
-            ),
-
-            // Top Rated
-            SliverToBoxAdapter(
-              child: _MangaSection(
-                title: 'Top Rated',
-                badge: '⭐',
-                asyncValue: topRated,
-              ),
-            ),
-
-            // Seasonal Picks
-            SliverToBoxAdapter(
-              child: _MangaSection(
-                title: 'Seasonal Picks',
-                badge: '🌸',
-                asyncValue: seasonal,
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
           ],
         ),
       ),
@@ -172,45 +117,31 @@ class DiscoverScreen extends ConsumerWidget {
   }
 }
 
-// ── Genre chips ────────────────────────────────────────────────────────────────
-
 class _GenreChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          child: Text('Browse by Genre', style: AppTypography.titleMedium),
-        ),
-        SizedBox(
-          height: 40,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _genres.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (_, i) => ActionChip(
-              label: Text(
-                _genres[i],
-                style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.onSurface,
-                ),
-              ),
-              backgroundColor: AppColors.surfaceVariant,
-              side: BorderSide.none,
-              onPressed: () {},
+    return SizedBox(
+      height: 60,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        scrollDirection: Axis.horizontal,
+        itemCount: _genres.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (ctx, i) {
+          final genre = _genres[i];
+          return ActionChip(
+            label: Text(genre),
+            labelStyle: AppTypography.labelSmall.copyWith(
+              color: Colors.white70,
             ),
-          ),
-        ),
-        const SizedBox(height: 8),
-      ],
+            backgroundColor: AppColors.surface,
+            onPressed: () => context.push('/search', extra: genre),
+          );
+        },
+      ),
     );
   }
 }
-
-// ── Manga section ──────────────────────────────────────────────────────────────
 
 class _MangaSection extends StatelessWidget {
   const _MangaSection({
@@ -228,7 +159,6 @@ class _MangaSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section header
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
           child: Row(
@@ -244,78 +174,36 @@ class _MangaSection extends StatelessWidget {
                 ],
               ),
               TextButton(
-                onPressed: () {
-                  context.push('/search', extra: title);
-                },
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(0, 0),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(
-                  'See All',
-                  style: AppTypography.labelMedium.copyWith(
-                    color: AppColors.primary,
-                  ),
-                ),
+                onPressed: () => context.push('/search', extra: title),
+                child: Text('See All', style: TextStyle(color: AppColors.primary)),
               ),
             ],
           ),
         ),
-
-        // Content
         SizedBox(
           height: 230,
           child: asyncValue.when(
             loading: () => ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: 6,
+              itemCount: 5,
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (_, __) => const MangaCardSkeleton(),
             ),
-            error: (_, __) => _ErrorRow(sectionTitle: title),
+            error: (e, __) => Center(child: Text('Error loading $title')),
             data: (items) {
-              if (items.isEmpty) return _ErrorRow(sectionTitle: title);
+              if (items.isEmpty) return const Center(child: Text('No results'));
               return ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: items.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 12),
-                itemBuilder: (ctx, i) {
-                  final manga = items[i];
-                  return MangaCard(manga: manga);
-                },
+                itemBuilder: (ctx, i) => MangaCard(manga: items[i]),
               );
             },
           ),
         ),
       ],
-    );
-  }
-}
-
-// ── Error row ──────────────────────────────────────────────────────────────────
-
-class _ErrorRow extends StatelessWidget {
-  const _ErrorRow({required this.sectionTitle});
-  final String sectionTitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.wifi_off_rounded,
-            color: AppColors.onSurfaceMuted,
-            size: 28,
-          ),
-          const SizedBox(height: 8),
-          Text('Could not load $sectionTitle', style: AppTypography.bodySmall),
-        ],
-      ),
     );
   }
 }

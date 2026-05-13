@@ -17,6 +17,35 @@ class AsuraService {
     'Referer': 'https://asuracomic.net/',
   };
 
+  static Future<List<Manga>> fetchLatest() async {
+    try {
+      final url = '$_base';
+      final response = await _client.get(Uri.parse(url), headers: _headers);
+      if (response.statusCode != 200) return [];
+
+      final document = parser.parse(response.body);
+      // Asura home page items
+      final items = document.querySelectorAll('.listupd .bs');
+
+      return items.map((item) {
+        final title = item.querySelector('.tt')?.text.trim() ?? 'Unknown';
+        final href = item.querySelector('a')?.attributes['href'] ?? '';
+        final id = href.split('/').where((s) => s.isNotEmpty).last;
+        final coverUrl = item.querySelector('img')?.attributes['src'] ?? '';
+
+        return Manga(
+          id: id,
+          sourceId: 'asura',
+          title: title,
+          coverUrl: coverUrl,
+          status: MangaStatus.unknown,
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   static Future<List<Manga>> search(String query) async {
     try {
       final url = '$_base/search?q=${Uri.encodeComponent(query)}';
@@ -112,23 +141,28 @@ class AsuraService {
       if (response.statusCode != 200) return [];
 
       final document = parser.parse(response.body);
-      
-      // Asura sometimes uses lazy-loading or different container classes
-      final images = document.querySelectorAll('.reader-area img, .rd-area img, #readerarea img');
 
-      return images.asMap().entries.map((entry) {
-        final img = entry.value;
-        // Check multiple attributes for the image URL (src, data-src, data-lazy-src)
-        final imageUrl = img.attributes['src'] ?? 
-                        img.attributes['data-src'] ?? 
-                        img.attributes['data-lazy-src'] ?? 
-                        '';
-        
-        return Page(
-          index: entry.key,
-          imageUrl: imageUrl.trim(),
-        );
-      }).where((p) => p.imageUrl.isNotEmpty).toList();
+      // Asura sometimes uses lazy-loading or different container classes
+      final images = document.querySelectorAll(
+        '.reader-area img, .rd-area img, #readerarea img',
+      );
+
+      return images
+          .asMap()
+          .entries
+          .map((entry) {
+            final img = entry.value;
+            // Check multiple attributes for the image URL (src, data-src, data-lazy-src)
+            final imageUrl =
+                img.attributes['src'] ??
+                img.attributes['data-src'] ??
+                img.attributes['data-lazy-src'] ??
+                '';
+
+            return Page(index: entry.key, imageUrl: imageUrl.trim());
+          })
+          .where((p) => p.imageUrl.isNotEmpty)
+          .toList();
     } catch (_) {
       return [];
     }
