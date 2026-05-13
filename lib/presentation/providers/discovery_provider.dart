@@ -1,11 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/remote/asura_service.dart';
 import '../../data/remote/flame_service.dart';
+import '../../data/remote/mangafire_service.dart';
 import '../../data/remote/manganato_service.dart';
 import '../../data/remote/reaper_service.dart';
 import '../../domain/entities/manga.dart';
 
 /// Discovery providers for multiple sources.
+
+final mangafireLatestProvider = FutureProvider<List<Manga>>((ref) async {
+  return MangaFireService.fetchLatest();
+});
 
 final asuraLatestProvider = FutureProvider<List<Manga>>((ref) async {
   return AsuraService.fetchLatest();

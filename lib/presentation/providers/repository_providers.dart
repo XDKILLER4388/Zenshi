@@ -28,6 +28,7 @@ import '../../data/remote/asura_service.dart';
 import '../../data/remote/reaper_service.dart';
 import '../../data/remote/flame_service.dart';
 import '../../data/remote/mangazone_service.dart';
+import '../../data/remote/mangafire_service.dart';
 import '../../data/local/daos/manga_dao.dart';
 import '../../data/local/daos/chapter_dao.dart';
 import '../../data/local/database/app_database.dart';
@@ -143,19 +144,10 @@ class _MultiSourceRepository implements MangaRepository {
       AsuraService.search(title),
       ReaperService.search(title),
       FlameService.search(title),
+      MangaFireService.search(title),
     ]);
 
-    return [
-      ...results[0],
-      ...results[1],
-      ...results[2],
-      ...results[3],
-      ...results[4],
-      ...results[5],
-      ...results[6],
-      ...results[7],
-      ...results[8],
-    ];
+    return results.expand((x) => x).toList();
   }
 
   @override
@@ -201,6 +193,7 @@ class _MultiSourceRepository implements MangaRepository {
       'asura' => AsuraService.fetchChapterList(mangaId),
       'reaper' => ReaperService.fetchChapterList(mangaId),
       'flame' => FlameService.fetchChapterList(mangaId),
+      'mangafire' => MangaFireService.fetchChapters(mangaId),
       _ => MangaDexService.fetchChapterList(mangaId),
     };
 
@@ -224,6 +217,7 @@ class _MultiSourceRepository implements MangaRepository {
       'asura' => AsuraService.fetchPages(chapter.id),
       'reaper' => ReaperService.fetchPages(chapter.id),
       'flame' => FlameService.fetchPages(chapter.id),
+      'mangafire' => MangaFireService.fetchPages(chapter.id),
       _ => MangaDexService.fetchPages(chapter.id),
     };
   }
@@ -254,6 +248,7 @@ class _MangaDexReaderRepository implements ReaderRepository {
       'asura' => AsuraService.fetchPages(chapter.id),
       'reaper' => ReaperService.fetchPages(chapter.id),
       'flame' => FlameService.fetchPages(chapter.id),
+      'mangafire' => MangaFireService.fetchPages(chapter.id),
       _ => MangaDexService.fetchPages(chapter.id),
     };
   }

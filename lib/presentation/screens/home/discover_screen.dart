@@ -12,9 +12,21 @@ import '../../widgets/common/skeleton_loader.dart';
 import '../../widgets/manga_card/manga_card.dart';
 
 const _genres = [
-  'Action', 'Romance', 'Fantasy', 'Horror', 'Comedy',
-  'Sci-Fi', 'Slice of Life', 'Sports', 'Mystery', 'Thriller',
-  'Isekai', 'Mecha', 'Historical', 'Supernatural', 'Drama',
+  'Action',
+  'Romance',
+  'Fantasy',
+  'Horror',
+  'Comedy',
+  'Sci-Fi',
+  'Slice of Life',
+  'Sports',
+  'Mystery',
+  'Thriller',
+  'Isekai',
+  'Mecha',
+  'Historical',
+  'Supernatural',
+  'Drama',
 ];
 
 class DiscoverScreen extends ConsumerWidget {
@@ -26,6 +38,7 @@ class DiscoverScreen extends ConsumerWidget {
     final reaper = ref.watch(reaperLatestProvider);
     final flame = ref.watch(flameLatestProvider);
     final manganato = ref.watch(manganatoLatestProvider);
+    final mangafire = ref.watch(mangafireLatestProvider);
 
     // Collect all loaded manga for random pick
     final allLoaded = [
@@ -33,6 +46,7 @@ class DiscoverScreen extends ConsumerWidget {
       ...reaper.valueOrNull ?? [],
       ...flame.valueOrNull ?? [],
       ...manganato.valueOrNull ?? [],
+      ...mangafire.valueOrNull ?? [],
     ];
 
     return Scaffold(
@@ -56,20 +70,23 @@ class DiscoverScreen extends ConsumerWidget {
           ref.invalidate(reaperLatestProvider);
           ref.invalidate(flameLatestProvider);
           ref.invalidate(manganatoLatestProvider);
+          ref.invalidate(mangafireLatestProvider);
         },
         child: CustomScrollView(
           slivers: [
             // Genre chips
             SliverToBoxAdapter(child: _GenreChips()),
 
-            // Asura Scans
+            // MangaFire
             SliverToBoxAdapter(
               child: _MangaSection(
-                title: 'Asura Scans',
-                badge: '⚡',
-                asyncValue: asura,
+                title: 'MangaFire Latest',
+                badge: '🔥',
+                asyncValue: mangafire,
               ),
             ),
+
+            // Asura Scans
 
             // Reaper Scans
             SliverToBoxAdapter(
@@ -164,7 +181,10 @@ class _MangaSection extends StatelessWidget {
               ),
               TextButton(
                 onPressed: () => context.push('/search', extra: title),
-                child: Text('See All', style: TextStyle(color: AppColors.primary)),
+                child: Text(
+                  'See All',
+                  style: TextStyle(color: AppColors.primary),
+                ),
               ),
             ],
           ),
