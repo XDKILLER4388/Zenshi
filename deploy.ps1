@@ -4,7 +4,7 @@ Set-Location "C:\Zenshi"
 # 1. Git Push
 Write-Host "--- Pushing to GitHub ---" -ForegroundColor Cyan
 git add .
-git commit -m "fix: enable NSFW content, manhua visibility, and filter empty chapters"
+git commit -m "feat: deep linking for 200+ sources and Keiyoushi extension integration"
 git push origin main
 
 # 2. Build APK
