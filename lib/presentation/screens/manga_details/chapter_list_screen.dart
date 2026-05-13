@@ -5,9 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_typography.dart';
 import '../../../domain/entities/chapter.dart';
-import '../../providers/mangadex_provider.dart';
+import '../../providers/manga_provider.dart';
 
-/// Standalone chapter list screen (accessible via /manga/:id/chapters).
+/// Standalone chapter list screen (accessible via /manga-details/:sourceId/:id/chapters).
 class ChapterListScreen extends ConsumerStatefulWidget {
   const ChapterListScreen({
     super.key,

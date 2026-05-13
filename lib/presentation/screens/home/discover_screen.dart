@@ -58,7 +58,7 @@ class DiscoverScreen extends ConsumerWidget {
         onPressed: () {
           if (allLoaded.isNotEmpty) {
             final pick = allLoaded[math.Random().nextInt(allLoaded.length)];
-            context.push('/manga/${pick.sourceId}/${pick.id}');
+            context.push('/manga-details/${pick.sourceId}/${pick.id}');
           }
         },
         backgroundColor: AppColors.primary,

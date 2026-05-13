@@ -650,9 +650,7 @@ class _ChapterList extends StatelessWidget {
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () {
-                context.push(
-                  '/home/search?q=${Uri.encodeComponent(mangaTitle)}',
-                );
+                context.push('/search', extra: mangaTitle);
               },
               icon: const Icon(Icons.public),
               label: const Text('Search in other sources'),

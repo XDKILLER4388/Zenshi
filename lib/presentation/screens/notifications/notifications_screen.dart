@@ -6,12 +6,7 @@ import '../../../core/constants/app_typography.dart';
 
 // ── Notification category ──────────────────────────────────────────────────────
 
-enum _NotificationCategory {
-  newChapter,
-  downloads,
-  extensions,
-  appUpdates,
-}
+enum _NotificationCategory { newChapter, downloads, extensions, appUpdates }
 
 // ── Mock notification model ────────────────────────────────────────────────────
 
@@ -35,14 +30,14 @@ class _AppNotification {
   });
 
   _AppNotification copyWith({bool? isRead}) => _AppNotification(
-        id: id,
-        category: category,
-        title: title,
-        body: body,
-        timestamp: timestamp,
-        isRead: isRead ?? this.isRead,
-        routeTarget: routeTarget,
-      );
+    id: id,
+    category: category,
+    title: title,
+    body: body,
+    timestamp: timestamp,
+    isRead: isRead ?? this.isRead,
+    routeTarget: routeTarget,
+  );
 }
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
@@ -54,7 +49,7 @@ final _mockNotifications = [
     title: 'New Chapter Available',
     body: 'One Piece — Chapter 1110 is now available.',
     timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
-    routeTarget: '/manga/one-piece',
+    routeTarget: '/manga-details/mangadex/one-piece',
   ),
   _AppNotification(
     id: '2',
@@ -63,7 +58,7 @@ final _mockNotifications = [
     body: 'Jujutsu Kaisen — Chapter 256 is now available.',
     timestamp: DateTime.now().subtract(const Duration(hours: 2)),
     isRead: true,
-    routeTarget: '/manga/jjk',
+    routeTarget: '/manga-details/mangadex/jjk',
   ),
   _AppNotification(
     id: '3',
@@ -77,7 +72,8 @@ final _mockNotifications = [
     id: '4',
     category: _NotificationCategory.extensions,
     title: 'Extension Degraded',
-    body: 'Manganato is experiencing issues. Consider switching to an alternative source.',
+    body:
+        'Manganato is experiencing issues. Consider switching to an alternative source.',
     timestamp: DateTime.now().subtract(const Duration(hours: 5)),
     routeTarget: '/extensions',
   ),
@@ -102,8 +98,7 @@ final _mockNotifications = [
 
 // ── Notifications provider ─────────────────────────────────────────────────────
 
-class _NotificationsNotifier
-    extends StateNotifier<List<_AppNotification>> {
+class _NotificationsNotifier extends StateNotifier<List<_AppNotification>> {
   _NotificationsNotifier() : super(_mockNotifications);
 
   void markAllAsRead() {
@@ -119,8 +114,8 @@ class _NotificationsNotifier
 
 final _notificationsProvider =
     StateNotifierProvider<_NotificationsNotifier, List<_AppNotification>>(
-  (_) => _NotificationsNotifier(),
-);
+      (_) => _NotificationsNotifier(),
+    );
 
 // ── Notifications screen ───────────────────────────────────────────────────────
 
@@ -154,8 +149,9 @@ class NotificationsScreen extends ConsumerWidget {
                     ref.read(_notificationsProvider.notifier).markAllAsRead(),
                 child: Text(
                   'Mark all read',
-                  style: AppTypography.labelMedium
-                      .copyWith(color: AppColors.primary),
+                  style: AppTypography.labelMedium.copyWith(
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ),
@@ -203,9 +199,7 @@ class _NotificationList extends ConsumerWidget {
                   ref.read(_notificationsProvider.notifier).markAsRead(n.id);
                   if (n.routeTarget != null && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Navigate to ${n.routeTarget}'),
-                      ),
+                      SnackBar(content: Text('Navigate to ${n.routeTarget}')),
                     );
                   }
                 },
@@ -237,7 +231,9 @@ class _CategoryHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Text(
         label,
-        style: AppTypography.titleSmall.copyWith(color: AppColors.onSurfaceMuted),
+        style: AppTypography.titleSmall.copyWith(
+          color: AppColors.onSurfaceMuted,
+        ),
       ),
     );
   }
@@ -246,10 +242,7 @@ class _CategoryHeader extends StatelessWidget {
 // ── Notification item ──────────────────────────────────────────────────────────
 
 class _NotificationItem extends StatelessWidget {
-  const _NotificationItem({
-    required this.notification,
-    required this.onTap,
-  });
+  const _NotificationItem({required this.notification, required this.onTap});
 
   final _AppNotification notification;
   final VoidCallback onTap;
@@ -271,7 +264,8 @@ class _NotificationItem extends StatelessWidget {
     };
 
     return Semantics(
-      label: '${notification.title}. ${notification.body}. '
+      label:
+          '${notification.title}. ${notification.body}. '
           '${notification.isRead ? 'Read' : 'Unread'}. '
           '${_timeAgo(notification.timestamp)}',
       button: true,
@@ -353,8 +347,11 @@ class _NotificationItem extends StatelessWidget {
 
               // Navigate arrow (if tappable)
               if (notification.routeTarget != null)
-                const Icon(Icons.chevron_right,
-                    size: 18, color: AppColors.onSurfaceMuted),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: AppColors.onSurfaceMuted,
+                ),
             ],
           ),
         ),
@@ -393,8 +390,9 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'You\'re all caught up! Notifications about new chapters, downloads, and extensions will appear here.',
-              style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.onSurfaceMuted),
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.onSurfaceMuted,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
