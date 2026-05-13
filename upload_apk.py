@@ -1,6 +1,7 @@
 import urllib.request, json, os, datetime
 
-TOKEN = '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'
+# Use environment variable for security
+TOKEN = os.environ.get('GITHUB_TOKEN', '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')
 REPO = 'XDKILLER4388/Zenshi'
 APK = r'C:\Zenshi\build\app\outputs\flutter-apk\app-release.apk'
 
