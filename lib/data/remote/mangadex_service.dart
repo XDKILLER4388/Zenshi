@@ -152,13 +152,16 @@ class MangaDexService {
       // Fetch up to 2000 chapters (20 pages) to ensure completeness
       final seenChapters = <String>{};
       for (int page = 0; page < 20; page++) {
-        final url =
-            '$_base/manga/$mangaId/feed'
+        final url = '$_base/manga/$mangaId/feed'
             '?limit=$limit&offset=$offset'
             '&translatedLanguage[]=en'
             '&translatedLanguage[]=ja'
             '&translatedLanguage[]=ko'
             '&translatedLanguage[]=zh'
+            '&translatedLanguage[]=zh-hk'
+            '&translatedLanguage[]=pt-br'
+            '&translatedLanguage[]=es'
+            '&translatedLanguage[]=es-la'
             '&includeExternalUrl=1'
             '&order[chapter]=asc'
             '&includes[]=scanlation_group'

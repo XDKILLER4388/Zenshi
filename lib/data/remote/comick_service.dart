@@ -16,7 +16,9 @@ class ComickService {
 
   static Future<List<Manga>> search(String query) async {
     try {
-      final url = '$_base/v1.0/search?q=${Uri.encodeComponent(query)}&limit=20&t=1';
+      // search with all content ratings including NSFW
+      final url =
+          '$_base/v1.0/search?q=${Uri.encodeComponent(query)}&limit=20&t=1&tachiyomi=true';
       final response = await _client.get(Uri.parse(url), headers: _headers);
       if (response.statusCode != 200) return [];
 
@@ -42,14 +44,14 @@ class ComickService {
 
   static Future<List<Chapter>> fetchChapterList(String hid) async {
     try {
-      // Fetching all chapters using a very large limit and no pagination needed if limit is high enough
-      final url = '$_base/comic/$hid/chapters?lang=en&limit=10000';
+      // Fetching all chapters across ALL available languages to ensure no "no chapters" error
+      final url = '$_base/comic/$hid/chapters?limit=10000';
       final response = await _client.get(Uri.parse(url), headers: _headers);
       if (response.statusCode != 200) return [];
 
       final data = jsonDecode(response.body);
       final List<dynamic> chapters = data['chapters'] ?? [];
-      
+
       final List<Chapter> result = [];
       final seen = <String>{};
 
@@ -57,22 +59,24 @@ class ComickService {
         final chapNum = item['chap'] ?? '0';
         final vol = item['vol'] ?? '';
         final key = '${chapNum}_$vol';
-        
+
         if (!seen.contains(key)) {
-          result.add(Chapter(
-            id: item['hid'],
-            mangaId: hid,
-            sourceId: 'comick',
-            chapterNumber: double.tryParse(chapNum) ?? 0,
-            title: item['title'],
-            uploadDate: DateTime.tryParse(item['created_at'] ?? ''),
-            pageCount: null,
-            isRead: false,
-          ));
+          result.add(
+            Chapter(
+              id: item['hid'],
+              mangaId: hid,
+              sourceId: 'comick',
+              chapterNumber: double.tryParse(chapNum) ?? 0,
+              title: item['title'],
+              uploadDate: DateTime.tryParse(item['created_at'] ?? ''),
+              pageCount: null,
+              isRead: false,
+            ),
+          );
           seen.add(key);
         }
       }
-      
+
       // Sort chapters numerically: newest first
       result.sort((a, b) => b.chapterNumber.compareTo(a.chapterNumber));
       return result;
@@ -89,13 +93,10 @@ class ComickService {
 
       final data = jsonDecode(response.body);
       final List<dynamic> images = data['chapter']['images'] ?? [];
-      
+
       return images.asMap().entries.map((entry) {
         final img = entry.value;
-        return Page(
-          index: entry.key,
-          imageUrl: '$_imgBase/${img['url']}',
-        );
+        return Page(index: entry.key, imageUrl: '$_imgBase/${img['url']}');
       }).toList();
     } catch (_) {
       return [];
@@ -103,7 +104,8 @@ class ComickService {
   }
 
   static Manga _parseManga(Map<String, dynamic> item) {
-    final cover = item['md_covers'] != null && (item['md_covers'] as List).isNotEmpty
+    final cover =
+        item['md_covers'] != null && (item['md_covers'] as List).isNotEmpty
         ? '$_imgBase/${item['md_covers'][0]['b2key']}'
         : (item['cover_url'] ?? '');
 
@@ -112,15 +114,19 @@ class ComickService {
       sourceId: 'comick',
       title: item['title'] ?? 'Unknown',
       coverUrl: cover,
-      author: item['authors'] != null && (item['authors'] as List).isNotEmpty 
-          ? item['authors'][0]['name'] 
+      author: item['authors'] != null && (item['authors'] as List).isNotEmpty
+          ? item['authors'][0]['name']
           : null,
       artist: null,
       description: item['desc'],
       status: _parseStatus(item['status']),
-      genres: (item['genres'] as List?)?.map((g) => g['name'] as String).toList() ?? [],
+      genres:
+          (item['genres'] as List?)?.map((g) => g['name'] as String).toList() ??
+          [],
       averageRating: (item['bayesian_rating'] as num?)?.toDouble(),
-      isNsfw: item['content_rating'] == 'erotica' || item['content_rating'] == 'pornographic',
+      isNsfw:
+          item['content_rating'] == 'erotica' ||
+          item['content_rating'] == 'pornographic',
     );
   }
 
