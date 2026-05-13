@@ -382,6 +382,16 @@ final _mockAvailableExtensions = [
     healthStatus: ExtensionHealthStatus.healthy,
   ),
   const ExtensionInfo(
+    id: 'mangazone',
+    name: 'MangaZone',
+    version: '1.0.0',
+    sourceClass: 'MangaZoneSource',
+    allowedDomains: ['mangazoneapp.com'],
+    sourceType: SourceType.aggregator,
+    language: 'EN',
+    healthStatus: ExtensionHealthStatus.healthy,
+  ),
+  const ExtensionInfo(
     id: 'mangaparkv5',
     name: 'MangaPark v5',
     version: '1.0.0',

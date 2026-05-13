@@ -45,31 +45,56 @@ class MangaCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Cover
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                width: width,
-                height: height,
-                child: manga.coverUrl != null && manga.coverUrl!.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: manga.coverUrl!,
-                        fit: BoxFit.cover,
-                        placeholder: (_, __) => _ShimmerBox(
-                          width: width,
-                          height: height,
-                        ),
-                        errorWidget: (_, __, ___) => _GradientPlaceholder(
-                          title: manga.title,
-                          width: width,
-                          height: height,
-                        ),
-                      )
-                    : _GradientPlaceholder(
-                        title: manga.title,
-                        width: width,
-                        height: height,
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    width: width,
+                    height: height,
+                    child: manga.coverUrl != null && manga.coverUrl!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: manga.coverUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => _ShimmerBox(
+                              width: width,
+                              height: height,
+                            ),
+                            errorWidget: (_, __, ___) => _GradientPlaceholder(
+                              title: manga.title,
+                              width: width,
+                              height: height,
+                            ),
+                          )
+                        : _GradientPlaceholder(
+                            title: manga.title,
+                            width: width,
+                            height: height,
+                          ),
+                  ),
+                ),
+                // Source label
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha(150),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      manga.sourceId.toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
                       ),
-              ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 6),
             // Title

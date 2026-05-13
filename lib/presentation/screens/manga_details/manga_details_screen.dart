@@ -219,6 +219,7 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
                             '/reader/${widget.mangaId}/${ch.id}',
                           ),
                           onLongPress: (ch) => _showContextMenu(context, ch),
+                          mangaTitle: manga.title,
                         ),
                       ),
 
@@ -618,12 +619,14 @@ class _ChapterList extends StatelessWidget {
     required this.onToggleSort,
     required this.onTap,
     required this.onLongPress,
+    required this.mangaTitle,
   });
   final List<Chapter> chapters;
   final bool sortAscending;
   final VoidCallback onToggleSort;
   final ValueChanged<Chapter> onTap;
   final ValueChanged<Chapter> onLongPress;
+  final String mangaTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -632,16 +635,22 @@ class _ChapterList extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.menu_book_outlined,
-              color: AppColors.onSurfaceMuted,
-              size: 48,
-            ),
-            const SizedBox(height: 12),
+            const Icon(Icons.menu_book, size: 64, color: AppColors.onSurfaceMuted),
+            const SizedBox(height: 16),
             Text(
-              'No English chapters available',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.onSurfaceMuted,
+              'No chapters available from this source',
+              style: AppTypography.bodyLarge.copyWith(color: AppColors.onSurfaceMuted),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                context.push('/home/search?q=${Uri.encodeComponent(mangaTitle)}');
+              },
+              icon: const Icon(Icons.public),
+              label: const Text('Search in other sources'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
               ),
             ),
           ],

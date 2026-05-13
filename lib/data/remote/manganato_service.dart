@@ -19,20 +19,33 @@ class ManganatoService {
 
   static Future<List<Manga>> search(String query) async {
     try {
-      final url =
-          'https://manganato.com/search/story/${query.replaceAll(' ', '_')}';
+      // Manganato search uses underscores
+      final formattedQuery = query.toLowerCase().replaceAll(
+        RegExp(r'[^a-z0-9]'),
+        '_',
+      );
+      final url = 'https://manganato.com/search/story/$formattedQuery';
       final response = await _client.get(Uri.parse(url), headers: _headers);
-      if (response.statusCode != 200) return [];
+
+      if (response.statusCode != 200) {
+        // Try alternative search if first one fails
+        final altUrl =
+            'https://manganato.com/search/story/${Uri.encodeComponent(query)}';
+        final altResponse = await _client.get(
+          Uri.parse(altUrl),
+          headers: _headers,
+        );
+        if (altResponse.statusCode != 200) return [];
+      }
 
       final document = parser.parse(response.body);
-      final items = document.querySelectorAll('.search-story-item');
+      final items = document.querySelectorAll('.search-story-item, .item-list');
 
       return items.map((item) {
-        final title =
-            item.querySelector('.item-title')?.text.trim() ?? 'Unknown';
-        final href =
-            item.querySelector('.item-title')?.attributes['href'] ?? '';
-        final id = href.split('/').last;
+        final titleLink = item.querySelector('.item-title, .title a');
+        final title = titleLink?.text.trim() ?? 'Unknown';
+        final href = titleLink?.attributes['href'] ?? '';
+        final id = href.split('/').where((s) => s.isNotEmpty).last;
         final coverUrl = item.querySelector('img')?.attributes['src'] ?? '';
 
         return Manga(
@@ -87,7 +100,6 @@ class ManganatoService {
 
   static Future<List<Chapter>> fetchChapterList(String mangaId) async {
     try {
-      // Try multiple domains as fallbacks
       final domains = [
         'chapmanganato.to',
         'manganato.com',
@@ -99,7 +111,6 @@ class ManganatoService {
         if (response.statusCode != 200) continue;
 
         final document = parser.parse(response.body);
-        // Try multiple selectors
         final selectors = [
           '.row-content-chapter li',
           '.chapter-list .row',
@@ -113,13 +124,12 @@ class ManganatoService {
 
         if (items.isEmpty) continue;
 
-        return items.map((item) {
+        final chapters = items.map((item) {
           final link = item.querySelector('a');
           final title = link?.text.trim() ?? '';
           final href = link?.attributes['href'] ?? '';
           final id = href.split('/').last;
 
-          // Extract chapter number more robustly
           double chapterNumber = 0;
           final numMatch = RegExp(r'Chapter\s+(\d+\.?\d*)').firstMatch(title);
           if (numMatch != null) {
@@ -135,6 +145,11 @@ class ManganatoService {
             isRead: false,
           );
         }).toList();
+
+        // Manganato usually lists chapters in reverse order (newest first)
+        // Sort to ensure chronological order (oldest first)
+        chapters.sort((a, b) => a.chapterNumber.compareTo(b.chapterNumber));
+        return chapters;
       }
       return [];
     } catch (_) {

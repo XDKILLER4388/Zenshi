@@ -5,37 +5,36 @@ import '../../domain/entities/chapter.dart';
 import '../../domain/entities/manga.dart';
 import '../../domain/entities/page.dart';
 
-class ReaperService {
-  static const _base = 'https://reaperscans.com';
+class MangaZoneService {
+  static const _base = 'https://mangazoneapp.com';
   static final _client = http.Client();
 
   static const _headers = {
     'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-    'Accept':
-        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-    'Referer': 'https://reaperscans.com/',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Referer': 'https://mangazoneapp.com/',
   };
 
   static Future<List<Manga>> search(String query) async {
     try {
-      final url = '$_base/search?query=${Uri.encodeComponent(query)}';
+      final url = '$_base/search?s=${Uri.encodeComponent(query)}';
       final response = await _client.get(Uri.parse(url), headers: _headers);
       if (response.statusCode != 200) return [];
 
       final document = parser.parse(response.body);
-      final items = document.querySelectorAll('.grid > div');
+      final items = document.querySelectorAll('.manga-list-1 li, .search-item');
 
       return items.map((item) {
-        final titleLink = item.querySelector('a');
+        final titleLink = item.querySelector('h3 a, .title a');
         final title = titleLink?.text.trim() ?? 'Unknown';
         final href = titleLink?.attributes['href'] ?? '';
-        final id = href.split('/').last;
+        final id = href.split('/').where((s) => s.isNotEmpty).last;
         final coverUrl = item.querySelector('img')?.attributes['src'] ?? '';
 
         return Manga(
           id: id,
-          sourceId: 'reaper',
+          sourceId: 'mangazone',
           title: title,
           coverUrl: coverUrl,
           status: MangaStatus.unknown,
@@ -48,20 +47,18 @@ class ReaperService {
 
   static Future<Manga?> fetchMangaById(String id) async {
     try {
-      final url = '$_base/series/$id';
+      final url = '$_base/manga/$id';
       final response = await _client.get(Uri.parse(url), headers: _headers);
       if (response.statusCode != 200) return null;
 
       final document = parser.parse(response.body);
-      final title = document.querySelector('h1')?.text.trim() ?? 'Unknown';
-      final coverUrl =
-          document.querySelector('.attr-cover img')?.attributes['src'] ?? '';
-      final description =
-          document.querySelector('.description')?.text.trim() ?? '';
+      final title = document.querySelector('.manga-detail-name')?.text.trim() ?? 'Unknown';
+      final coverUrl = document.querySelector('.manga-detail-cover img')?.attributes['src'] ?? '';
+      final description = document.querySelector('.manga-detail-description')?.text.trim() ?? '';
 
       return Manga(
         id: id,
-        sourceId: 'reaper',
+        sourceId: 'mangazone',
         title: title,
         coverUrl: coverUrl,
         description: description,
@@ -72,34 +69,31 @@ class ReaperService {
     }
   }
 
-  static Future<List<Chapter>> fetchChapterList(String seriesId) async {
+  static Future<List<Chapter>> fetchChapterList(String mangaId) async {
     try {
-      final url = '$_base/series/$seriesId';
+      final url = '$_base/manga/$mangaId';
       final response = await _client.get(Uri.parse(url), headers: _headers);
       if (response.statusCode != 200) return [];
 
       final document = parser.parse(response.body);
-      final items = document.querySelectorAll('.chapter-item');
+      final items = document.querySelectorAll('.manga-chapter-list li');
 
       final chapters = items.map((item) {
         final link = item.querySelector('a');
         final title = link?.text.trim() ?? '';
         final href = link?.attributes['href'] ?? '';
-        final id = href.split('/').last;
+        final id = href.split('/').where((s) => s.isNotEmpty).last;
 
         double chapterNumber = 0;
-        final match = RegExp(
-          r'Chapter\s*(\d+\.?\d*)',
-          caseSensitive: false,
-        ).firstMatch(title);
+        final match = RegExp(r'Chapter\s*(\d+\.?\d*)', caseSensitive: false).firstMatch(title);
         if (match != null) {
           chapterNumber = double.tryParse(match.group(1) ?? '0') ?? 0;
         }
 
         return Chapter(
           id: id,
-          mangaId: seriesId,
-          sourceId: 'reaper',
+          mangaId: mangaId,
+          sourceId: 'mangazone',
           chapterNumber: chapterNumber,
           title: title,
           isRead: false,
@@ -120,15 +114,12 @@ class ReaperService {
       if (response.statusCode != 200) return [];
 
       final document = parser.parse(response.body);
-      final images = document.querySelectorAll('.reader-area img');
+      final images = document.querySelectorAll('.chapter-content img');
 
       return images.asMap().entries.map((entry) {
         return Page(
           index: entry.key,
-          imageUrl:
-              entry.value.attributes['src'] ??
-              entry.value.attributes['data-src'] ??
-              '',
+          imageUrl: entry.value.attributes['src'] ?? entry.value.attributes['data-src'] ?? '',
         );
       }).toList();
     } catch (_) {

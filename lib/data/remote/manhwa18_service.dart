@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:html/parser.dart' as parser;
 import '../../domain/entities/chapter.dart';
 import '../../domain/entities/manga.dart';
 import '../../domain/entities/page.dart';
@@ -9,24 +10,64 @@ class Manhwa18Service {
   static final _client = http.Client();
 
   static const _headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-    'Accept': 'application/json, text/javascript, */*; q=0.01',
-    'X-Requested-With': 'XMLHttpRequest',
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Referer': 'https://manhwa18.cc/',
   };
 
   static Future<List<Manga>> search(String query) async {
     try {
-      // Manhwa18 often uses a search API or HTML results
       final url = '$_base/search?q=${Uri.encodeComponent(query)}';
       final response = await _client.get(Uri.parse(url), headers: _headers);
       if (response.statusCode != 200) return [];
 
-      // Simplified parsing for this implementation
-      // In a real app, use 'package:html/parser.dart'
-      return []; 
+      final document = parser.parse(response.body);
+      final items = document.querySelectorAll('.manga-item');
+
+      return items.map((item) {
+        final titleLink = item.querySelector('.title a');
+        final title = titleLink?.text.trim() ?? 'Unknown';
+        final href = titleLink?.attributes['href'] ?? '';
+        final id = href.split('/').last;
+        final coverUrl = item.querySelector('img')?.attributes['src'] ?? '';
+
+        return Manga(
+          id: id,
+          sourceId: 'manhwa18',
+          title: title,
+          coverUrl: coverUrl,
+          status: MangaStatus.unknown,
+        );
+      }).toList();
     } catch (_) {
       return [];
+    }
+  }
+
+  static Future<Manga?> fetchMangaById(String id) async {
+    try {
+      final url = '$_base/manga/$id';
+      final response = await _client.get(Uri.parse(url), headers: _headers);
+      if (response.statusCode != 200) return null;
+
+      final document = parser.parse(response.body);
+      final title = document.querySelector('h1')?.text.trim() ?? 'Unknown';
+      final coverUrl =
+          document.querySelector('.manga-cover img')?.attributes['src'] ?? '';
+      final description =
+          document.querySelector('.summary-content')?.text.trim() ?? '';
+
+      return Manga(
+        id: id,
+        sourceId: 'manhwa18',
+        title: title,
+        coverUrl: coverUrl,
+        description: description,
+        status: MangaStatus.unknown,
+      );
+    } catch (_) {
+      return null;
     }
   }
 
@@ -36,11 +77,35 @@ class Manhwa18Service {
       final response = await _client.get(Uri.parse(url), headers: _headers);
       if (response.statusCode != 200) return [];
 
-      // Logic to extract chapters from HTML
-      final List<Chapter> chapters = [];
-      // Example of what we'd extract:
-      // chapters.add(Chapter(id: 'ch-1', mangaId: mangaSlug, sourceId: 'manhwa18', ...));
-      
+      final document = parser.parse(response.body);
+      final items = document.querySelectorAll('.chapter-list li');
+
+      final chapters = items.map((item) {
+        final link = item.querySelector('a');
+        final title = link?.text.trim() ?? '';
+        final href = link?.attributes['href'] ?? '';
+        final id = href.split('/').last;
+
+        double chapterNumber = 0;
+        final match = RegExp(
+          r'Chapter\s*(\d+\.?\d*)',
+          caseSensitive: false,
+        ).firstMatch(title);
+        if (match != null) {
+          chapterNumber = double.tryParse(match.group(1) ?? '0') ?? 0;
+        }
+
+        return Chapter(
+          id: id,
+          mangaId: mangaSlug,
+          sourceId: 'manhwa18',
+          chapterNumber: chapterNumber,
+          title: title,
+          isRead: false,
+        );
+      }).toList();
+
+      chapters.sort((a, b) => a.chapterNumber.compareTo(b.chapterNumber));
       return chapters;
     } catch (_) {
       return [];
@@ -53,7 +118,18 @@ class Manhwa18Service {
       final response = await _client.get(Uri.parse(url), headers: _headers);
       if (response.statusCode != 200) return [];
 
-      return [];
+      final document = parser.parse(response.body);
+      final images = document.querySelectorAll('.reader-content img');
+
+      return images.asMap().entries.map((entry) {
+        return Page(
+          index: entry.key,
+          imageUrl:
+              entry.value.attributes['src'] ??
+              entry.value.attributes['data-src'] ??
+              '',
+        );
+      }).toList();
     } catch (_) {
       return [];
     }

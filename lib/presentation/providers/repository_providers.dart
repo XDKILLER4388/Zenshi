@@ -26,6 +26,7 @@ import '../../data/remote/manganato_service.dart';
 import '../../data/remote/asura_service.dart';
 import '../../data/remote/reaper_service.dart';
 import '../../data/remote/flame_service.dart';
+import '../../data/remote/mangazone_service.dart';
 import '../../data/local/daos/manga_dao.dart';
 import '../../data/local/daos/chapter_dao.dart';
 import '../../data/local/database/app_database.dart';
@@ -112,6 +113,7 @@ class _MultiSourceRepository implements MangaRepository {
       'bato' => BatoService.fetchMangaById(id),
       'manganato' => ManganatoService.fetchMangaById(id),
       'asura' => AsuraService.fetchMangaById(id),
+      'mangazone' => MangaZoneService.fetchMangaById(id),
       'reaper' => ReaperService.fetchMangaById(id),
       'flame' => FlameService.fetchMangaById(id),
       'manhwaz' => ManhwazService.fetchMangaById(id),
@@ -132,6 +134,7 @@ class _MultiSourceRepository implements MangaRepository {
       Manhwa18Service.search(title),
       BatoService.search(title),
       ManganatoService.search(title),
+      MangaZoneService.search(title),
       AsuraService.search(title),
       ReaperService.search(title),
       FlameService.search(title),
@@ -187,6 +190,7 @@ class _MultiSourceRepository implements MangaRepository {
       'manhwa18' => Manhwa18Service.fetchChapterList(mangaId),
       'bato' => BatoService.fetchChapterList(mangaId),
       'manganato' => ManganatoService.fetchChapterList(mangaId),
+      'mangazone' => MangaZoneService.fetchChapterList(mangaId),
       'asura' => AsuraService.fetchChapterList(mangaId),
       'reaper' => ReaperService.fetchChapterList(mangaId),
       'flame' => FlameService.fetchChapterList(mangaId),
@@ -209,6 +213,7 @@ class _MultiSourceRepository implements MangaRepository {
       'manhwa18' => Manhwa18Service.fetchPages(chapter.id),
       'bato' => BatoService.fetchPages(chapter.id),
       'manganato' => ManganatoService.fetchPages(chapter.id),
+      'mangazone' => MangaZoneService.fetchPages(chapter.id),
       'asura' => AsuraService.fetchPages(chapter.id),
       'reaper' => ReaperService.fetchPages(chapter.id),
       'flame' => FlameService.fetchPages(chapter.id),

@@ -4,7 +4,7 @@ Set-Location "C:\Zenshi"
 # 1. Git Push
 Write-Host "--- Pushing to GitHub ---" -ForegroundColor Cyan
 git add .
-git commit -m "feat: deep linking for 200+ sources and Keiyoushi extension integration"
+git commit -m "feat: implement MangaZone, improve search reliability, and add global search fallback"
 # Try push, but continue even if it fails due to Push Protection
 git push origin main -o "secret_scanning=bypass"
 if ($LASTEXITCODE -ne 0) {

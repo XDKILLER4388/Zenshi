@@ -56,9 +56,11 @@ class BatoService {
 
       final document = parser.parse(response.body);
       final title = document.querySelector('h3')?.text.trim() ?? 'Unknown';
-      final coverUrl = document.querySelector('.attr-cover img')?.attributes['src'] ?? '';
-      final description = document.querySelector('.limit-html')?.text.trim() ?? '';
-      
+      final coverUrl =
+          document.querySelector('.attr-cover img')?.attributes['src'] ?? '';
+      final description =
+          document.querySelector('.limit-html')?.text.trim() ?? '';
+
       return Manga(
         id: id,
         sourceId: 'bato',
@@ -81,14 +83,17 @@ class BatoService {
       final document = parser.parse(response.body);
       final items = document.querySelectorAll('.main .item');
 
-      return items.map((item) {
-        final title = item.querySelector('b')?.text.trim() ?? '';
-        final href = item.querySelector('a.chapt')?.attributes['href'] ?? '';
+      final chapters = items.map((item) {
+        final link = item.querySelector('a.chapt');
+        final title = link?.text.trim() ?? '';
+        final href = link?.attributes['href'] ?? '';
         final id = href.split('/').last;
 
-        // Extract chapter number from title (e.g., "Ch.1")
         double chapterNumber = 0;
-        final match = RegExp(r'Ch\.(\d+)').firstMatch(title);
+        final match = RegExp(
+          r'(?:Ch|Chapter)\.?\s*(\d+\.?\d*)',
+          caseSensitive: false,
+        ).firstMatch(title);
         if (match != null) {
           chapterNumber = double.tryParse(match.group(1) ?? '0') ?? 0;
         }
@@ -102,6 +107,9 @@ class BatoService {
           isRead: false,
         );
       }).toList();
+
+      chapters.sort((a, b) => a.chapterNumber.compareTo(b.chapterNumber));
+      return chapters;
     } catch (_) {
       return [];
     }

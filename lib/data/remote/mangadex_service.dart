@@ -147,21 +147,15 @@ class MangaDexService {
     try {
       final chapters = <Chapter>[];
       int offset = 0;
-      const limit = 100;
+      const limit = 500; // Increased limit per request
 
-      // Fetch up to 2000 chapters (20 pages) to ensure completeness
       final seenChapters = <String>{};
-      for (int page = 0; page < 20; page++) {
+      
+      // Fetch as many as possible (MangaDex limit is 10k, but let's go up to 5000)
+      for (int page = 0; page < 10; page++) {
         final url = '$_base/manga/$mangaId/feed'
             '?limit=$limit&offset=$offset'
             '&translatedLanguage[]=en'
-            '&translatedLanguage[]=ja'
-            '&translatedLanguage[]=ko'
-            '&translatedLanguage[]=zh'
-            '&translatedLanguage[]=zh-hk'
-            '&translatedLanguage[]=pt-br'
-            '&translatedLanguage[]=es'
-            '&translatedLanguage[]=es-la'
             '&includeExternalUrl=1'
             '&order[chapter]=asc'
             '&includes[]=scanlation_group'
@@ -179,22 +173,21 @@ class MangaDexService {
 
         for (final item in results) {
           final ch = _parseChapter(item as Map<String, dynamic>, mangaId);
-          // Only add chapters that have at least one page OR an external URL (for Manhwa)
-          final attrs = item['attributes'] as Map<String, dynamic>;
-          final hasExternalUrl = attrs['externalUrl'] != null;
+          if (ch == null) continue;
 
-          if (ch != null &&
-              (ch.pageCount == null || ch.pageCount! > 0 || hasExternalUrl)) {
-            final key = '${ch.chapterNumber}_${ch.title}';
-            if (!seenChapters.contains(key)) {
-              chapters.add(ch);
-              seenChapters.add(key);
-            }
+          // Key by chapter number AND volume to handle re-releases or different versions
+          final attrs = (item as Map)['attributes'] as Map<String, dynamic>;
+          final vol = attrs['volume'] ?? '0';
+          final key = '${ch.chapterNumber}_$vol';
+          
+          if (!seenChapters.contains(key)) {
+            chapters.add(ch);
+            seenChapters.add(key);
           }
         }
 
         offset += limit;
-        if (offset >= total) break;
+        if (offset >= total || results.isEmpty) break;
       }
 
       return chapters;
