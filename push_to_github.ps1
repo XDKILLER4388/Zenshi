@@ -2,7 +2,8 @@ $ErrorActionPreference = "Stop"
 Set-Location "C:\zenshi"
 
 # Commit
-git commit -m "feat: initial Zenshi manga reader - Flutter 3.32, Riverpod, Drift, Supabase, 16 screens, extension sandbox, offline-first"
+git add .
+git commit -m "fix: resolve compilation errors and update build scripts"
 
 # Add remote and push
 git remote set-url origin "https://github.com/XDKILLER4388/zenshi.git"

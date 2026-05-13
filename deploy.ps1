@@ -13,6 +13,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # 2. Build APK
+Write-Host "--- Running Build Runner ---" -ForegroundColor Cyan
+dart run build_runner build --delete-conflicting-outputs
+
 Write-Host "--- Building Flutter APK ---" -ForegroundColor Cyan
 flutter build apk --release
 
