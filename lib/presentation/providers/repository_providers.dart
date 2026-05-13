@@ -27,6 +27,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 import '../../data/remote/mangadex_service.dart';
 import '../../data/remote/comick_service.dart';
 import '../../data/remote/manhwaz_service.dart';
+import '../../data/remote/manhwa18_service.dart';
 import '../../data/local/daos/manga_dao.dart';
 import '../../data/local/daos/chapter_dao.dart';
 
@@ -44,8 +45,7 @@ class _MultiSourceRepository implements MangaRepository {
   @override
   Future<Manga?> getMangaById(String id, String sourceId) async {
     if (sourceId == 'comick') return ComickService.fetchMangaBySlug(id);
-    if (sourceId == 'manhwaz') {
-      // Placeholder: Implement fetch by ID for Manhwaz if needed
+    if (sourceId == 'manhwaz' || sourceId == 'manhwa18') {
       return null;
     }
     return MangaDexService.fetchMangaById(id);
@@ -61,9 +61,10 @@ class _MultiSourceRepository implements MangaRepository {
       MangaDexService.search(title),
       ComickService.search(title),
       ManhwazService.search(title),
+      Manhwa18Service.search(title),
     ]);
 
-    return [...results[0], ...results[1], ...results[2]];
+    return [...results[0], ...results[1], ...results[2], ...results[3]];
   }
 
   @override
@@ -76,6 +77,7 @@ class _MultiSourceRepository implements MangaRepository {
   Future<List<Chapter>> getChapterList(String mangaId, String sourceId) async {
     if (sourceId == 'comick') return ComickService.fetchChapterList(mangaId);
     if (sourceId == 'manhwaz') return ManhwazService.fetchChapterList(mangaId);
+    if (sourceId == 'manhwa18') return Manhwa18Service.fetchChapterList(mangaId);
     return MangaDexService.fetchChapterList(mangaId);
   }
 
@@ -83,6 +85,7 @@ class _MultiSourceRepository implements MangaRepository {
   Future<List<Page>> getPages(Chapter chapter) async {
     if (chapter.sourceId == 'comick') return ComickService.fetchPages(chapter.id);
     if (chapter.sourceId == 'manhwaz') return ManhwazService.fetchPages(chapter.id);
+    if (chapter.sourceId == 'manhwa18') return Manhwa18Service.fetchPages(chapter.id);
     return MangaDexService.fetchPages(chapter.id);
   }
 }
@@ -99,6 +102,7 @@ class _MangaDexReaderRepository implements ReaderRepository {
   Future<List<Page>> getPages(Chapter chapter) async {
     if (chapter.sourceId == 'comick') return ComickService.fetchPages(chapter.id);
     if (chapter.sourceId == 'manhwaz') return ManhwazService.fetchPages(chapter.id);
+    if (chapter.sourceId == 'manhwa18') return Manhwa18Service.fetchPages(chapter.id);
     return MangaDexService.fetchPages(chapter.id);
   }
 
