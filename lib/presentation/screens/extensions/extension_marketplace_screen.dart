@@ -54,7 +54,43 @@ final _mockAvailableExtensions = [
     name: 'Bato.to',
     version: '1.0.5',
     sourceClass: 'BatoSource',
-    allowedDomains: ['bato.to'],
+    allowedDomains: [
+      'bato.to',
+      'batocomic.com',
+      'batocomic.net',
+      'batocomic.org',
+      'batotoo.com',
+      'batotwo.com',
+      'battwo.com',
+      'comiko.net',
+      'comiko.org',
+      'mangatoto.com',
+      'mangatoto.net',
+      'mangatoto.org',
+      'readtoto.com',
+      'readtoto.net',
+      'readtoto.org',
+      'dto.to',
+      'hto.to',
+      'mto.to',
+      'wto.to',
+      'xbato.com',
+      'xbato.net',
+      'xbato.org',
+      'zbato.com',
+      'zbato.net',
+      'zbato.org',
+    ],
+    sourceType: SourceType.aggregator,
+    language: 'Multi',
+    healthStatus: ExtensionHealthStatus.healthy,
+  ),
+  const ExtensionInfo(
+    id: 'comick',
+    name: 'Comick.io',
+    version: '1.0.0',
+    sourceClass: 'ComickSource',
+    allowedDomains: ['comick.io', 'comick.cc'],
     sourceType: SourceType.aggregator,
     language: 'Multi',
     healthStatus: ExtensionHealthStatus.healthy,
@@ -192,7 +228,8 @@ class _ExtensionMarketplaceScreenState
               label: 'Search extensions',
               child: TextField(
                 controller: _searchController,
-                onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
+                onChanged: (v) =>
+                    setState(() => _searchQuery = v.toLowerCase()),
                 decoration: InputDecoration(
                   hintText: 'Search extensions…',
                   prefixIcon: const Icon(Icons.search, size: 20),
@@ -222,14 +259,18 @@ class _ExtensionMarketplaceScreenState
             ),
             child: Row(
               children: [
-                const Icon(Icons.merge_type,
-                    size: 16, color: AppColors.primary),
+                const Icon(
+                  Icons.merge_type,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Multi-source merging: same titles across extensions are deduplicated automatically.',
-                    style: AppTypography.bodySmall
-                        .copyWith(color: AppColors.primary),
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
               ],
@@ -295,10 +336,12 @@ class _ExtensionMarketplaceScreenState
   List<ExtensionInfo> _filterExtensions(List<ExtensionInfo> extensions) {
     if (_searchQuery.isEmpty) return extensions;
     return extensions
-        .where((e) =>
-            e.name.toLowerCase().contains(_searchQuery) ||
-            e.language.toLowerCase().contains(_searchQuery) ||
-            e.sourceType.name.toLowerCase().contains(_searchQuery))
+        .where(
+          (e) =>
+              e.name.toLowerCase().contains(_searchQuery) ||
+              e.language.toLowerCase().contains(_searchQuery) ||
+              e.sourceType.name.toLowerCase().contains(_searchQuery),
+        )
         .toList();
   }
 }
@@ -380,7 +423,9 @@ class _InstalledExtensionListState extends State<_InstalledExtensionList> {
   }
 
   Future<void> _showUninstallDialog(
-      BuildContext context, ExtensionInfo ext) async {
+    BuildContext context,
+    ExtensionInfo ext,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -397,8 +442,7 @@ class _InstalledExtensionListState extends State<_InstalledExtensionList> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Uninstall'),
           ),
         ],
@@ -428,11 +472,13 @@ class _AvailableExtensionsTab extends StatelessWidget {
 
     final available = _mockAvailableExtensions
         .where((e) => !installedIds.contains(e.id))
-        .where((e) =>
-            searchQuery.isEmpty ||
-            e.name.toLowerCase().contains(searchQuery) ||
-            e.language.toLowerCase().contains(searchQuery) ||
-            e.sourceType.name.toLowerCase().contains(searchQuery))
+        .where(
+          (e) =>
+              searchQuery.isEmpty ||
+              e.name.toLowerCase().contains(searchQuery) ||
+              e.language.toLowerCase().contains(searchQuery) ||
+              e.sourceType.name.toLowerCase().contains(searchQuery),
+        )
         .toList();
 
     if (available.isEmpty) {
@@ -519,8 +565,11 @@ class _ExtensionCard extends StatelessWidget {
                 color: AppColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.extension,
-                  size: 22, color: AppColors.onSurfaceMuted),
+              child: const Icon(
+                Icons.extension,
+                size: 22,
+                color: AppColors.onSurfaceMuted,
+              ),
             ),
             const SizedBox(width: 12),
 
@@ -553,10 +602,7 @@ class _ExtensionCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       _SourceTypeBadge(type: extension.sourceType),
                       const SizedBox(width: 8),
-                      Text(
-                        extension.language,
-                        style: AppTypography.bodySmall,
-                      ),
+                      Text(extension.language, style: AppTypography.bodySmall),
                     ],
                   ),
                   if (extension.healthStatus != ExtensionHealthStatus.healthy)
@@ -567,7 +613,8 @@ class _ExtensionCard extends StatelessWidget {
                             ? 'Degraded — some content may be unavailable'
                             : 'Unavailable — source is unreachable',
                         style: AppTypography.bodySmall.copyWith(
-                          color: extension.healthStatus ==
+                          color:
+                              extension.healthStatus ==
                                   ExtensionHealthStatus.degraded
                               ? AppColors.warning
                               : AppColors.error,
@@ -586,20 +633,26 @@ class _ExtensionCard extends StatelessWidget {
                 onPressed: onAction,
                 style: TextButton.styleFrom(
                   foregroundColor: actionColor,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   minimumSize: const Size(48, 36),
                 ),
-                child: Text(actionLabel,
-                    style: AppTypography.labelMedium
-                        .copyWith(color: actionColor)),
+                child: Text(
+                  actionLabel,
+                  style: AppTypography.labelMedium.copyWith(color: actionColor),
+                ),
               ),
             ),
 
             // Drag handle (installed only)
             if (isInstalled)
-              const Icon(Icons.drag_handle,
-                  size: 20, color: AppColors.onSurfaceMuted),
+              const Icon(
+                Icons.drag_handle,
+                size: 20,
+                color: AppColors.onSurfaceMuted,
+              ),
           ],
         ),
       ),
@@ -632,10 +685,7 @@ class _HealthDot extends StatelessWidget {
       child: Container(
         width: 10,
         height: 10,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
     );
   }
@@ -699,8 +749,9 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.onSurfaceMuted),
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.onSurfaceMuted,
+              ),
               textAlign: TextAlign.center,
             ),
           ],

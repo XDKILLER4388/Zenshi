@@ -138,13 +138,14 @@ class MangaDexService {
       int offset = 0;
       const limit = 100;
 
-      // Fetch up to 500 chapters (5 pages)
-      for (int page = 0; page < 5; page++) {
+      // Fetch up to 1000 chapters (10 pages) to ensure completeness
+      for (int page = 0; page < 10; page++) {
         final url = '$_base/manga/$mangaId/feed'
             '?limit=$limit&offset=$offset'
             '&translatedLanguage[]=en'
             '&order[chapter]=desc'
-            '&includes[]=scanlation_group';
+            '&includes[]=scanlation_group'
+            '&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic';
 
         final response = await _client
             .get(Uri.parse(url), headers: {'User-Agent': 'Zenshi/1.0'})
