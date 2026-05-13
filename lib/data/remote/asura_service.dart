@@ -112,14 +112,23 @@ class AsuraService {
       if (response.statusCode != 200) return [];
 
       final document = parser.parse(response.body);
-      final images = document.querySelectorAll('.reader-area img');
+      
+      // Asura sometimes uses lazy-loading or different container classes
+      final images = document.querySelectorAll('.reader-area img, .rd-area img, #readerarea img');
 
       return images.asMap().entries.map((entry) {
+        final img = entry.value;
+        // Check multiple attributes for the image URL (src, data-src, data-lazy-src)
+        final imageUrl = img.attributes['src'] ?? 
+                        img.attributes['data-src'] ?? 
+                        img.attributes['data-lazy-src'] ?? 
+                        '';
+        
         return Page(
           index: entry.key,
-          imageUrl: entry.value.attributes['src'] ?? '',
+          imageUrl: imageUrl.trim(),
         );
-      }).toList();
+      }).where((p) => p.imageUrl.isNotEmpty).toList();
     } catch (_) {
       return [];
     }

@@ -120,17 +120,23 @@ class ReaperService {
       if (response.statusCode != 200) return [];
 
       final document = parser.parse(response.body);
-      final images = document.querySelectorAll('.reader-area img');
+      
+      // Reaper Scans often uses specific reader classes or IDs
+      final images = document.querySelectorAll('.reader-area img, .rd-area img, #readerarea img, .chapter-content img');
 
       return images.asMap().entries.map((entry) {
+        final img = entry.value;
+        final imageUrl = img.attributes['src'] ?? 
+                        img.attributes['data-src'] ?? 
+                        img.attributes['data-lazy-src'] ?? 
+                        img.attributes['content'] ?? 
+                        '';
+                        
         return Page(
           index: entry.key,
-          imageUrl:
-              entry.value.attributes['src'] ??
-              entry.value.attributes['data-src'] ??
-              '',
+          imageUrl: imageUrl.trim(),
         );
-      }).toList();
+      }).where((p) => p.imageUrl.isNotEmpty).toList();
     } catch (_) {
       return [];
     }

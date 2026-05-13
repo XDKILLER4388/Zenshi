@@ -3,7 +3,7 @@ import urllib.request, json, os, datetime
 # Use environment variable for security
 TOKEN = os.environ.get('GITHUB_TOKEN', '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')
 REPO = 'XDKILLER4388/Zenshi'
-APK = r'C:\Zenshi\build\app\outputs\flutter-apk\app-release.apk'
+APK = r'C:\Zenshi\android\app\build\outputs\apk\release\app-release.apk'
 
 # Use timestamp for unique tags
 now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")

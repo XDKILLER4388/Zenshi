@@ -14,8 +14,9 @@ class MangaDexService {
 
   // Common headers to avoid 403/Blocked requests
   static const _headers = {
-    'User-Agent': 'Zenshi/1.0 (Mozilla/5.0; Android 13)',
-    'Accept': '*/*',
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
     'Accept-Language': 'en-US,en;q=0.9',
     'Origin': 'https://mangadex.org',
     'Referer': 'https://mangadex.org/',
@@ -150,10 +151,11 @@ class MangaDexService {
       const limit = 500; // Increased limit per request
 
       final seenChapters = <String>{};
-      
+
       // Fetch as many as possible (MangaDex limit is 10k, but let's go up to 5000)
       for (int page = 0; page < 10; page++) {
-        final url = '$_base/manga/$mangaId/feed'
+        final url =
+            '$_base/manga/$mangaId/feed'
             '?limit=$limit&offset=$offset'
             '&translatedLanguage[]=en'
             '&includeExternalUrl=1'
@@ -179,7 +181,7 @@ class MangaDexService {
           final attrs = (item as Map)['attributes'] as Map<String, dynamic>;
           final vol = attrs['volume'] ?? '0';
           final key = '${ch.chapterNumber}_$vol';
-          
+
           if (!seenChapters.contains(key)) {
             chapters.add(ch);
             seenChapters.add(key);
@@ -211,11 +213,16 @@ class MangaDexService {
       final chapter = data['chapter'] as Map<String, dynamic>? ?? {};
       final hash = chapter['hash'] as String? ?? '';
       final pageFiles = chapter['data'] as List<dynamic>? ?? [];
+      final pageFilesLowRes = chapter['dataSaver'] as List<dynamic>? ?? [];
 
-      return pageFiles.asMap().entries.map((entry) {
+      // Use dataSaver if data is empty, or provide it as a fallback
+      final files = pageFiles.isNotEmpty ? pageFiles : pageFilesLowRes;
+      final type = pageFiles.isNotEmpty ? 'data' : 'data-saver';
+
+      return files.asMap().entries.map((entry) {
         final index = entry.key;
         final fileName = entry.value as String;
-        return Page(index: index, imageUrl: '$baseUrl/data/$hash/$fileName');
+        return Page(index: index, imageUrl: '$baseUrl/$type/$hash/$fileName');
       }).toList();
     } catch (_) {
       return [];
@@ -322,14 +329,19 @@ class MangaDexService {
       final isNsfw =
           contentRating == 'erotica' || contentRating == 'pornographic';
 
+      // Ensure coverUrl is not null, fallback to a placeholder if needed
+      // but usually MangaDex always has relationships if requested.
+
       return Manga(
         id: id,
         sourceId: 'mangadex',
         title: title,
-        coverUrl: coverUrl,
+        coverUrl: coverUrl ?? 'https://placehold.co/400x600?text=No+Cover',
         author: author,
         artist: artist,
-        description: description.isNotEmpty ? description : null,
+        description: description.isNotEmpty && description != 'null'
+            ? description
+            : null,
         status: status,
         genres: genres,
         averageRating: rating,
