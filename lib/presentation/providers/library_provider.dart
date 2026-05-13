@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/manga.dart';
+import 'use_case_providers.dart';
 
 // ── Sort options ───────────────────────────────────────────────────────────────
 
@@ -70,8 +71,6 @@ class LibraryFilterState {
       Object.hash(sort, collectionId, tagId, genre, status, isRead);
 }
 
-import 'use_case_providers.dart';
-
 // ── Library notifier ───────────────────────────────────────────────────────────
 
 /// Watches the library stream and exposes add/remove operations.
@@ -91,8 +90,9 @@ class LibraryNotifier extends StreamNotifier<List<Manga>> {
 }
 
 /// Provider for [LibraryNotifier].
-final libraryProvider =
-    StreamNotifierProvider<LibraryNotifier, List<Manga>>(LibraryNotifier.new);
+final libraryProvider = StreamNotifierProvider<LibraryNotifier, List<Manga>>(
+  LibraryNotifier.new,
+);
 
 // ── Library filter notifier ────────────────────────────────────────────────────
 
@@ -117,5 +117,5 @@ class LibraryFilterNotifier extends Notifier<LibraryFilterState> {
 /// Provider for [LibraryFilterNotifier].
 final libraryFilterProvider =
     NotifierProvider<LibraryFilterNotifier, LibraryFilterState>(
-  LibraryFilterNotifier.new,
-);
+      LibraryFilterNotifier.new,
+    );

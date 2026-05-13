@@ -17,13 +17,6 @@ import '../../domain/repositories/reader_repository.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../../domain/repositories/sync_repository.dart';
 
-// ── Auth ───────────────────────────────────────────────────────────────────────
-
-/// Stub auth repository — Supabase not initialized in this build.
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return _StubAuthRepository();
-});
-
 import '../../data/remote/mangadex_service.dart';
 import '../../data/remote/manhwaz_service.dart';
 import '../../data/remote/manhwa18_service.dart';
@@ -34,8 +27,16 @@ import '../../data/remote/reaper_service.dart';
 import '../../data/remote/flame_service.dart';
 import '../../data/local/daos/manga_dao.dart';
 import '../../data/local/daos/chapter_dao.dart';
-
 import '../../data/local/database/app_database.dart';
+import '../../infrastructure/download_manager/download_manager_service.dart';
+import '../../data/local/daos/download_dao.dart';
+
+// ── Auth ───────────────────────────────────────────────────────────────────────
+
+/// Stub auth repository — Supabase not initialized in this build.
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  return _StubAuthRepository();
+});
 
 // ── Database ──────────────────────────────────────────────────────────────────
 
@@ -61,21 +62,27 @@ class _MultiSourceRepository implements MangaRepository {
 
   @override
   Stream<List<Manga>> watchLibrary() {
-    return _mangaDao.watchLibrary().map((list) => list.map((data) => Manga(
-          id: data.id,
-          sourceId: data.sourceId,
-          title: data.title,
-          coverUrl: data.coverUrl,
-          author: data.author,
-          artist: data.artist,
-          description: data.description,
-          status: MangaStatus.values[data.status.index],
-          genres: data.genres?.split(',') ?? [],
-          averageRating: data.averageRating,
-          isNsfw: data.isNsfw,
-          inLibrary: data.inLibrary,
-          lastUpdated: data.lastUpdated,
-        )).toList());
+    return _mangaDao.watchLibrary().map(
+      (list) => list
+          .map(
+            (data) => Manga(
+              id: data.id,
+              sourceId: data.sourceId,
+              title: data.title,
+              coverUrl: data.coverUrl,
+              author: data.author,
+              artist: data.artist,
+              description: data.description,
+              status: MangaStatus.values[data.status.index],
+              genres: data.genres?.split(',') ?? [],
+              averageRating: data.averageRating,
+              isNsfw: data.isNsfw,
+              inLibrary: data.inLibrary,
+              lastUpdated: data.lastUpdated,
+            ),
+          )
+          .toList(),
+    );
   }
 
   @override
@@ -143,30 +150,32 @@ class _MultiSourceRepository implements MangaRepository {
 
   @override
   Future<void> addToLibrary(Manga manga) async {
-    await _mangaDao.upsertManga(MangaTableCompanion.insert(
-      id: manga.id,
-      sourceId: manga.sourceId,
-      title: manga.title,
-      coverUrl: Value(manga.coverUrl),
-      author: Value(manga.author),
-      artist: Value(manga.artist),
-      description: Value(manga.description),
-      status: Value(MangaTableStatus.values[manga.status.index]),
-      genres: Value(manga.genres.join(',')),
-      averageRating: Value(manga.averageRating),
-      isNsfw: Value(manga.isNsfw),
-      inLibrary: const Value(true),
-      lastUpdated: Value(manga.lastUpdated),
-    ));
+    await _mangaDao.upsertManga(
+      MangaTableCompanion.insert(
+        id: manga.id,
+        sourceId: manga.sourceId,
+        title: manga.title,
+        coverUrl: Value(manga.coverUrl),
+        author: Value(manga.author),
+        artist: Value(manga.artist),
+        description: Value(manga.description),
+        status: Value(MangaTableStatus.values[manga.status.index]),
+        genres: Value(manga.genres.join(',')),
+        averageRating: Value(manga.averageRating),
+        isNsfw: Value(manga.isNsfw),
+        inLibrary: const Value(true),
+        lastUpdated: Value(manga.lastUpdated),
+      ),
+    );
   }
 
   @override
   Future<void> removeFromLibrary(String mangaId) async {
     final manga = await _mangaDao.getMangaById(mangaId);
     if (manga != null) {
-      await _mangaDao.upsertManga(manga.toCompanion(true).copyWith(
-            inLibrary: const Value(false),
-          ));
+      await _mangaDao.upsertManga(
+        manga.toCompanion(true).copyWith(inLibrary: const Value(false)),
+      );
     }
   }
 
@@ -230,10 +239,6 @@ class _MangaDexReaderRepository implements ReaderRepository {
   @override
   Future<ReadingProgress?> getProgress(String mangaId) async => null;
 }
-
-import '../../infrastructure/download_manager/download_manager_service.dart';
-import '../../data/local/daos/download_dao.dart';
-import '../../data/local/database/app_database.dart';
 
 // ── Download ───────────────────────────────────────────────────────────────────
 
@@ -311,9 +316,8 @@ class _StubAuthRepository implements AuthRepository {
   @override
   Future<void> deleteAccount() async {}
   @override
-  Stream<AuthState> watchAuthState() => Stream.value(
-        const AuthState(status: AuthStatus.guest),
-      );
+  Stream<AuthState> watchAuthState() =>
+      Stream.value(const AuthState(status: AuthStatus.guest));
   @override
   bool get isAuthenticated => false;
   @override
@@ -336,8 +340,7 @@ class _StubMangaRepository implements MangaRepository {
   Future<void> addToLibrary(Manga manga) => throw UnimplementedError();
 
   @override
-  Future<void> removeFromLibrary(String mangaId) =>
-      throw UnimplementedError();
+  Future<void> removeFromLibrary(String mangaId) => throw UnimplementedError();
 
   @override
   Future<List<Chapter>> getChapterList(String mangaId, String sourceId) =>
@@ -366,16 +369,14 @@ class _StubReaderRepository implements ReaderRepository {
 
 class _StubDownloadRepository implements DownloadRepository {
   @override
-  Stream<List<DownloadTask>> watchDownloadQueue() =>
-      throw UnimplementedError();
+  Stream<List<DownloadTask>> watchDownloadQueue() => throw UnimplementedError();
 
   @override
   Future<void> enqueueDownload(
     Chapter chapter,
     String mangaTitle,
     ImageQuality quality,
-  ) =>
-      throw UnimplementedError();
+  ) => throw UnimplementedError();
 
   @override
   Future<void> pauseDownload(String taskId) => throw UnimplementedError();
