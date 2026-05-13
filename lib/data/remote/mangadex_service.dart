@@ -12,6 +12,15 @@ class MangaDexService {
 
   static final _client = http.Client();
 
+  // Common headers to avoid 403/Blocked requests
+  static const _headers = {
+    'User-Agent': 'Zenshi/1.0 (Mozilla/5.0; Android 13)',
+    'Accept': '*/*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Origin': 'https://mangadex.org',
+    'Referer': 'https://mangadex.org/',
+  };
+
   // ── Fetch popular manga ────────────────────────────────────────────────────
 
   static Future<List<Manga>> fetchPopular({int limit = 10}) async {
@@ -115,8 +124,10 @@ class MangaDexService {
     try {
       final response = await _client
           .get(
-            Uri.parse('$_base/manga/$mangaId?includes[]=cover_art&includes[]=author&includes[]=artist'),
-            headers: {'User-Agent': 'Zenshi/1.0'},
+            Uri.parse(
+              '$_base/manga/$mangaId?includes[]=cover_art&includes[]=author&includes[]=artist',
+            ),
+            headers: _headers,
           )
           .timeout(const Duration(seconds: 10));
 
@@ -140,7 +151,8 @@ class MangaDexService {
 
       // Fetch up to 1000 chapters (10 pages) to ensure completeness
       for (int page = 0; page < 10; page++) {
-        final url = '$_base/manga/$mangaId/feed'
+        final url =
+            '$_base/manga/$mangaId/feed'
             '?limit=$limit&offset=$offset'
             '&translatedLanguage[]=en'
             '&order[chapter]=desc'
@@ -148,7 +160,7 @@ class MangaDexService {
             '&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic';
 
         final response = await _client
-            .get(Uri.parse(url), headers: {'User-Agent': 'Zenshi/1.0'})
+            .get(Uri.parse(url), headers: _headers)
             .timeout(const Duration(seconds: 10));
 
         if (response.statusCode != 200) break;
@@ -180,10 +192,7 @@ class MangaDexService {
   static Future<List<Page>> fetchPages(String chapterId) async {
     try {
       final response = await _client
-          .get(
-            Uri.parse('$_base/at-home/server/$chapterId'),
-            headers: {'User-Agent': 'Zenshi/1.0'},
-          )
+          .get(Uri.parse('$_base/at-home/server/$chapterId'), headers: _headers)
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) return [];
@@ -197,10 +206,7 @@ class MangaDexService {
       return pageFiles.asMap().entries.map((entry) {
         final index = entry.key;
         final fileName = entry.value as String;
-        return Page(
-          index: index,
-          imageUrl: '$baseUrl/data/$hash/$fileName',
-        );
+        return Page(index: index, imageUrl: '$baseUrl/data/$hash/$fileName');
       }).toList();
     } catch (_) {
       return [];
@@ -212,10 +218,14 @@ class MangaDexService {
   static Future<List<Manga>> _fetchManga(String url) async {
     try {
       final response = await _client
-          .get(Uri.parse(url), headers: {'User-Agent': 'Zenshi/1.0'})
+          .get(Uri.parse(url), headers: _headers)
           .timeout(const Duration(seconds: 10));
 
-      if (response.statusCode != 200) return [];
+      if (response.statusCode != 200) {
+        // Log error if status is not 200 (e.g. 403, 429)
+        print('MangaDex API Error: ${response.statusCode} for $url');
+        return [];
+      }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final results = data['data'] as List<dynamic>? ?? [];
@@ -236,17 +246,18 @@ class MangaDexService {
 
       // Title — prefer English, fall back to first available
       final titleMap = attrs['title'] as Map<String, dynamic>? ?? {};
-      final title = (titleMap['en'] ??
-              titleMap.values.firstWhere(
-                (v) => v != null && (v as String).isNotEmpty,
-                orElse: () => 'Unknown',
-              ))
-          .toString();
+      final title =
+          (titleMap['en'] ??
+                  titleMap.values.firstWhere(
+                    (v) => v != null && (v as String).isNotEmpty,
+                    orElse: () => 'Unknown',
+                  ))
+              .toString();
 
       // Description
       final descMap = attrs['description'] as Map<String, dynamic>? ?? {};
-      final description =
-          (descMap['en'] ?? descMap.values.firstOrNull ?? '').toString();
+      final description = (descMap['en'] ?? descMap.values.firstOrNull ?? '')
+          .toString();
 
       // Status
       final statusStr = attrs['status'] as String? ?? 'unknown';
@@ -299,7 +310,8 @@ class MangaDexService {
       final rating = (stats?['average'] as num?)?.toDouble();
 
       final contentRating = attrs['contentRating'] as String?;
-      final isNsfw = contentRating == 'erotica' || contentRating == 'pornographic';
+      final isNsfw =
+          contentRating == 'erotica' || contentRating == 'pornographic';
 
       return Manga(
         id: id,
@@ -319,8 +331,7 @@ class MangaDexService {
     }
   }
 
-  static Chapter? _parseChapter(
-      Map<String, dynamic> item, String mangaId) {
+  static Chapter? _parseChapter(Map<String, dynamic> item, String mangaId) {
     try {
       final id = item['id'] as String;
       final attrs = item['attributes'] as Map<String, dynamic>;
