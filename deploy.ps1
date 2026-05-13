@@ -6,10 +6,10 @@ Write-Host "--- Pushing to GitHub ---" -ForegroundColor Cyan
 git add .
 git commit -m "feat: deep linking for 200+ sources and Keiyoushi extension integration"
 # Try push, but continue even if it fails due to Push Protection
-try {
-    git push origin main -o "secret_scanning=bypass"
-} catch {
-    Write-Host "WARNING: GitHub push failed. Continuing with build and install..." -ForegroundColor Yellow
+git push origin main -o "secret_scanning=bypass"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "WARNING: GitHub push failed. This is likely due to Push Protection for legacy secrets in history." -ForegroundColor Yellow
+    Write-Host "Continuing with local build and installation..." -ForegroundColor Yellow
 }
 
 # 2. Build APK
