@@ -25,7 +25,6 @@ class DiscoverScreen extends ConsumerWidget {
     final asura = ref.watch(asuraLatestProvider);
     final reaper = ref.watch(reaperLatestProvider);
     final flame = ref.watch(flameLatestProvider);
-    final mangadex = ref.watch(mangadexPopularProvider);
     final manganato = ref.watch(manganatoLatestProvider);
 
     // Collect all loaded manga for random pick
@@ -33,7 +32,7 @@ class DiscoverScreen extends ConsumerWidget {
       ...asura.valueOrNull ?? [],
       ...reaper.valueOrNull ?? [],
       ...flame.valueOrNull ?? [],
-      ...mangadex.valueOrNull ?? [],
+      ...manganato.valueOrNull ?? [],
     ];
 
     return Scaffold(
@@ -56,7 +55,6 @@ class DiscoverScreen extends ConsumerWidget {
           ref.invalidate(asuraLatestProvider);
           ref.invalidate(reaperLatestProvider);
           ref.invalidate(flameLatestProvider);
-          ref.invalidate(mangadexPopularProvider);
           ref.invalidate(manganatoLatestProvider);
         },
         child: CustomScrollView(
@@ -97,15 +95,6 @@ class DiscoverScreen extends ConsumerWidget {
                 title: 'Manganato',
                 badge: '📚',
                 asyncValue: manganato,
-              ),
-            ),
-
-            // MangaDex
-            SliverToBoxAdapter(
-              child: _MangaSection(
-                title: 'MangaDex Popular',
-                badge: '🌐',
-                asyncValue: mangadex,
               ),
             ),
 
