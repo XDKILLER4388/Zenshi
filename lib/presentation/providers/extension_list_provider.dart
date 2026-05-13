@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/extension_info.dart';
+import 'repository_providers.dart';
 import 'use_case_providers.dart';
 
 // ── Extension list notifier ────────────────────────────────────────────────────
@@ -30,5 +31,5 @@ class ExtensionListNotifier extends StreamNotifier<List<ExtensionInfo>> {
 
 final extensionListProvider =
     StreamNotifierProvider<ExtensionListNotifier, List<ExtensionInfo>>(
-  ExtensionListNotifier.new,
-);
+      ExtensionListNotifier.new,
+    );

@@ -19,6 +19,7 @@ class ExtensionRepositoryImpl implements ExtensionRepository {
   Future<void> installExtension(String extensionId) async {
     // For now, we'll just mock the installation by adding it to the DB
     // In a real app, this would download the JS/APK file
+    final now = DateTime.now().millisecondsSinceEpoch;
     await _extensionDao.upsertExtension(
       ExtensionsTableCompanion.insert(
         id: extensionId,
@@ -28,6 +29,8 @@ class ExtensionRepositoryImpl implements ExtensionRepository {
         allowedDomains: '',
         sourceType: 'manga',
         language: 'EN',
+        installedAt: now,
+        updatedAt: now,
       ),
     );
   }
@@ -44,8 +47,10 @@ class ExtensionRepositoryImpl implements ExtensionRepository {
 
   @override
   Stream<List<ExtensionInfo>> watchInstalledExtensions() {
-    return _extensionDao.watchExtensions().map((list) => list
-        .map((data) => ExtensionInfo(
+    return _extensionDao.watchExtensions().map(
+      (list) => list
+          .map(
+            (data) => ExtensionInfo(
               id: data.id,
               name: data.name,
               version: data.version,
@@ -56,8 +61,10 @@ class ExtensionRepositoryImpl implements ExtensionRepository {
               isNsfw: data.isNsfw,
               healthStatus: _parseHealthStatus(data.healthStatus),
               consecutiveFailures: data.consecutiveFailures,
-            ))
-        .toList());
+            ),
+          )
+          .toList(),
+    );
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
+import 'package:html/dom.dart' as dom;
 import '../../domain/entities/chapter.dart';
 import '../../domain/entities/manga.dart';
 import '../../domain/entities/page.dart';
@@ -77,6 +78,7 @@ class ManganatoService {
           document
               .querySelector('#panel-story-info-description')
               ?.text
+              .replaceFirst(RegExp(r'Description\s*:\s*'), '')
               .trim() ??
           '';
       final genres = document
@@ -116,7 +118,7 @@ class ManganatoService {
           '.chapter-list .row',
           '.a-h',
         ];
-        var items = <parser.Element>[];
+        var items = <dom.Element>[];
         for (final selector in selectors) {
           items = document.querySelectorAll(selector);
           if (items.isNotEmpty) break;

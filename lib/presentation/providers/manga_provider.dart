@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/chapter.dart';
 import '../../domain/entities/manga.dart';
 import '../../domain/entities/page.dart' as manga_page;
+import 'repository_providers.dart';
 import 'use_case_providers.dart';
 
 class MangaDetailArgs {

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_typography.dart';
+import '../../../domain/entities/app_settings.dart';
 import '../../../domain/entities/chapter.dart';
 import '../../../domain/entities/manga.dart';
 import '../../providers/library_provider.dart';
@@ -73,8 +74,7 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
               Text('Could not load manga', style: AppTypography.bodyMedium),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: () =>
-                    ref.invalidate(mangaDetailProvider(widget.mangaId)),
+                onPressed: () => ref.invalidate(mangaDetailProvider(args)),
                 child: const Text('Retry'),
               ),
             ],
@@ -203,7 +203,7 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
                               ),
                               TextButton(
                                 onPressed: () => ref.invalidate(
-                                  chapterListByMangaProvider(widget.mangaId),
+                                  chapterListByMangaProvider(args),
                                 ),
                                 child: const Text('Retry'),
                               ),
@@ -635,22 +635,30 @@ class _ChapterList extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.menu_book, size: 64, color: AppColors.onSurfaceMuted),
+            const Icon(
+              Icons.menu_book,
+              size: 64,
+              color: AppColors.onSurfaceMuted,
+            ),
             const SizedBox(height: 16),
             Text(
               'No chapters available from this source',
-              style: AppTypography.bodyLarge.copyWith(color: AppColors.onSurfaceMuted),
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.onSurfaceMuted,
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () {
-                context.push('/home/search?q=${Uri.encodeComponent(mangaTitle)}');
+                context.push(
+                  '/home/search?q=${Uri.encodeComponent(mangaTitle)}',
+                );
               },
               icon: const Icon(Icons.public),
               label: const Text('Search in other sources'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
+                foregroundColor: Colors.white,
               ),
             ),
           ],

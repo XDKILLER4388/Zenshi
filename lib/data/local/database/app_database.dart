@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
 
 import '../daos/chapter_dao.dart';
 import '../daos/download_dao.dart';
@@ -45,11 +46,10 @@ part 'app_database.g.dart';
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase([QueryExecutor? executor])
-      : super(executor ?? _openConnection());
+  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   /// Constructor for testing — accepts an in-memory executor.
-  AppDatabase.forTesting(QueryExecutor executor) : super(executor);
+  AppDatabase.forTesting(super.executor);
 
   @override
   int get schemaVersion => 1;
@@ -80,20 +80,6 @@ class AppDatabase extends _$AppDatabase {
       },
     );
   }
-
-  // ---------------------------------------------------------------------------
-  // DAO lazy getters
-  // ---------------------------------------------------------------------------
-
-  late final MangaDao mangaDao = MangaDao(this);
-  late final ChapterDao chapterDao = ChapterDao(this);
-  late final ReadingProgressDao readingProgressDao = ReadingProgressDao(this);
-  late final LibraryDao libraryDao = LibraryDao(this);
-  late final DownloadDao downloadDao = DownloadDao(this);
-  late final ExtensionDao extensionDao = ExtensionDao(this);
-  late final SyncQueueDao syncQueueDao = SyncQueueDao(this);
-  late final SettingsDao settingsDao = SettingsDao(this);
-  late final SearchHistoryDao searchHistoryDao = SearchHistoryDao(this);
 }
 
 /// Opens an in-memory SQLite database (drift_flutter removed for v1.0).

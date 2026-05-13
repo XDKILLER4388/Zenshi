@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart';
 
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/chapter.dart';
@@ -75,12 +76,14 @@ class _MultiSourceRepository implements MangaRepository {
               author: data.author,
               artist: data.artist,
               description: data.description,
-              status: MangaStatus.values[data.status.index],
+              status: _parseMangaStatus(data.status),
               genres: data.genres?.split(',') ?? [],
               averageRating: data.averageRating,
               isNsfw: data.isNsfw,
               inLibrary: data.inLibrary,
-              lastUpdated: data.lastUpdated,
+              lastUpdated: data.lastUpdated != null
+                  ? DateTime.fromMillisecondsSinceEpoch(data.lastUpdated!)
+                  : null,
             ),
           )
           .toList(),
@@ -100,12 +103,14 @@ class _MultiSourceRepository implements MangaRepository {
         author: local.author,
         artist: local.artist,
         description: local.description,
-        status: MangaStatus.values[local.status.index],
+        status: _parseMangaStatus(local.status),
         genres: local.genres?.split(',') ?? [],
         averageRating: local.averageRating,
         isNsfw: local.isNsfw,
         inLibrary: local.inLibrary,
-        lastUpdated: local.lastUpdated,
+        lastUpdated: local.lastUpdated != null
+            ? DateTime.fromMillisecondsSinceEpoch(local.lastUpdated!)
+            : null,
       );
     }
 
@@ -124,7 +129,7 @@ class _MultiSourceRepository implements MangaRepository {
 
   @override
   Future<List<Manga>> searchManga(SearchQuery query) async {
-    final title = query.title ?? '';
+    final title = query.query;
     if (title.isEmpty) return [];
 
     // Search all sources in parallel for maximum coverage
@@ -149,6 +154,7 @@ class _MultiSourceRepository implements MangaRepository {
       ...results[5],
       ...results[6],
       ...results[7],
+      ...results[8],
     ];
   }
 
@@ -163,12 +169,13 @@ class _MultiSourceRepository implements MangaRepository {
         author: Value(manga.author),
         artist: Value(manga.artist),
         description: Value(manga.description),
-        status: Value(MangaTableStatus.values[manga.status.index]),
+        status: Value(manga.status.name),
         genres: Value(manga.genres.join(',')),
         averageRating: Value(manga.averageRating),
         isNsfw: Value(manga.isNsfw),
         inLibrary: const Value(true),
-        lastUpdated: Value(manga.lastUpdated),
+        lastUpdated: Value(manga.lastUpdated?.millisecondsSinceEpoch),
+        createdAt: DateTime.now().millisecondsSinceEpoch,
       ),
     );
   }
@@ -178,7 +185,7 @@ class _MultiSourceRepository implements MangaRepository {
     final manga = await _mangaDao.getMangaById(mangaId);
     if (manga != null) {
       await _mangaDao.upsertManga(
-        manga.toCompanion(true).copyWith(inLibrary: const Value(false)),
+        MangaTableCompanion(id: Value(manga.id), inLibrary: const Value(false)),
       );
     }
   }
@@ -219,6 +226,13 @@ class _MultiSourceRepository implements MangaRepository {
       'flame' => FlameService.fetchPages(chapter.id),
       _ => MangaDexService.fetchPages(chapter.id),
     };
+  }
+
+  MangaStatus _parseMangaStatus(String? status) {
+    return MangaStatus.values.firstWhere(
+      (e) => e.name == status,
+      orElse: () => MangaStatus.unknown,
+    );
   }
 }
 

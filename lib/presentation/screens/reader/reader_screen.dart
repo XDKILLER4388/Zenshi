@@ -163,8 +163,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: () =>
-                      ref.invalidate(chapterPagesProvider(widget.chapterId)),
+                  onPressed: () => ref.invalidate(
+                    chapterPagesProvider(
+                      PageArgs(
+                        chapterId: widget.chapterId,
+                        sourceId: widget.sourceId,
+                      ),
+                    ),
+                  ),
                   child: const Text('Retry'),
                 ),
               ],

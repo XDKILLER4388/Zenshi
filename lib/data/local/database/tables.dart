@@ -240,6 +240,9 @@ class ExtensionsTable extends Table {
   TextColumn get healthStatus =>
       text().named('health_status').withDefault(const Constant('healthy'))();
 
+  TextColumn get sourceType => text().named('source_type')();
+  TextColumn get language => text()();
+
   IntColumn get consecutiveFailures => integer()
       .named('consecutive_failures')
       .withDefault(const Constant(0))();
