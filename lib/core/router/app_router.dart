@@ -128,7 +128,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.search,
         name: 'search',
-        builder: (_, __) => const SearchScreen(),
+        builder: (_, state) => SearchScreen(
+          initialQuery: state.extra as String?,
+        ),
       ),
 
       // ── Extensions ────────────────────────────────────────────────────────

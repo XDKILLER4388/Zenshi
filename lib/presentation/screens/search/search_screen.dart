@@ -13,13 +13,27 @@ import '../../providers/mangadex_provider.dart';
 import '../../widgets/manga_card/manga_card.dart';
 
 const _trendingSearches = [
-  'One Piece', 'Jujutsu Kaisen', 'Chainsaw Man', 'Spy x Family',
-  'Demon Slayer', 'My Hero Academia', 'Vinland Saga', 'Berserk',
+  'One Piece',
+  'Jujutsu Kaisen',
+  'Chainsaw Man',
+  'Spy x Family',
+  'Demon Slayer',
+  'My Hero Academia',
+  'Vinland Saga',
+  'Berserk',
 ];
 
 const _genres = [
-  'Action', 'Romance', 'Fantasy', 'Horror', 'Comedy',
-  'Sci-Fi', 'Slice of Life', 'Sports', 'Mystery', 'Thriller',
+  'Action',
+  'Romance',
+  'Fantasy',
+  'Horror',
+  'Comedy',
+  'Sci-Fi',
+  'Slice of Life',
+  'Sports',
+  'Mystery',
+  'Thriller',
 ];
 
 // ── Filter state ───────────────────────────────────────────────────────────────
@@ -61,17 +75,22 @@ class _FilterState {
 // ── Screen ─────────────────────────────────────────────────────────────────────
 
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.initialQuery});
+
+  final String? initialQuery;
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends ConsumerState<SearchScreen> {  final _searchController = TextEditingController();
+class _SearchScreenState extends ConsumerState<SearchScreen> {
+  late final _searchController = TextEditingController(
+    text: widget.initialQuery,
+  );
   final _focusNode = FocusNode();
   Timer? _debounce;
 
-  String _query = '';
+  late String _query = widget.initialQuery ?? '';
   List<Manga> _results = [];
   List<String> _history = [];
   bool _searching = false;
@@ -87,6 +106,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {  final _searchCon
         _showHistory = _focusNode.hasFocus && _query.isEmpty;
       });
     });
+
+    if (widget.initialQuery != null) {
+      _search(widget.initialQuery!);
+    }
   }
 
   Future<void> _loadHistory() async {
@@ -138,7 +161,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {  final _searchCon
     try {
       final results = await ref.read(mangaSearchProvider(query).future);
       if (!mounted) return;
-      
+
       // Filter by NSFW toggle
       final filteredResults = results.where((m) {
         if (!_filters.showNsfw && m.isNsfw) return false;
@@ -305,7 +328,10 @@ class _HistoryAndTrending extends StatelessWidget {
           ),
           ...history.map(
             (q) => ListTile(
-              leading: const Icon(Icons.history, color: AppColors.onSurfaceMuted),
+              leading: const Icon(
+                Icons.history,
+                color: AppColors.onSurfaceMuted,
+              ),
               title: Text(q, style: AppTypography.bodyMedium),
               trailing: IconButton(
                 icon: const Icon(Icons.close, size: 18),
@@ -322,8 +348,11 @@ class _HistoryAndTrending extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Row(
             children: [
-              const Icon(Icons.local_fire_department_rounded,
-                  color: Colors.orange, size: 18),
+              const Icon(
+                Icons.local_fire_department_rounded,
+                color: Colors.orange,
+                size: 18,
+              ),
               const SizedBox(width: 6),
               Text('Trending', style: AppTypography.titleSmall),
             ],
@@ -331,7 +360,10 @@ class _HistoryAndTrending extends StatelessWidget {
         ),
         ..._trendingSearches.map(
           (q) => ListTile(
-            leading: const Icon(Icons.trending_up, color: AppColors.onSurfaceMuted),
+            leading: const Icon(
+              Icons.trending_up,
+              color: AppColors.onSurfaceMuted,
+            ),
             title: Text(q, style: AppTypography.bodyMedium),
             onTap: () => onSelect(q),
           ),
@@ -508,7 +540,9 @@ class _FilterSheetState extends State<_FilterSheet> {
                         } else {
                           genres.remove(g);
                         }
-                        setState(() => _state = _state.copyWith(genres: genres));
+                        setState(
+                          () => _state = _state.copyWith(genres: genres),
+                        );
                       },
                       selectedColor: AppColors.primary.withAlpha(60),
                       checkmarkColor: AppColors.primary,
@@ -566,8 +600,10 @@ class _FilterSheetState extends State<_FilterSheet> {
 
                 // NSFW toggle
                 SwitchListTile(
-                  title: Text('Show Adult Content (18+)',
-                      style: AppTypography.bodyMedium),
+                  title: Text(
+                    'Show Adult Content (18+)',
+                    style: AppTypography.bodyMedium,
+                  ),
                   value: _state.showNsfw,
                   activeColor: AppColors.primary,
                   contentPadding: EdgeInsets.zero,

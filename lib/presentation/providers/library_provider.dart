@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/manga.dart';
-import 'use_case_providers.dart';
 
 // ── Sort options ───────────────────────────────────────────────────────────────
 
@@ -71,18 +70,24 @@ class LibraryFilterState {
       Object.hash(sort, collectionId, tagId, genre, status, isRead);
 }
 
+import 'use_case_providers.dart';
+
 // ── Library notifier ───────────────────────────────────────────────────────────
 
 /// Watches the library stream and exposes add/remove operations.
 class LibraryNotifier extends StreamNotifier<List<Manga>> {
   @override
   Stream<List<Manga>> build() {
-    // Return empty list immediately — no DB access to avoid startup crashes
-    return Stream.value([]);
+    return ref.watch(getLibraryUseCaseProvider).call();
   }
 
-  Future<void> addToLibrary(Manga manga) async {}
-  Future<void> removeFromLibrary(String mangaId) async {}
+  Future<void> addToLibrary(Manga manga) async {
+    await ref.read(addToLibraryUseCaseProvider).call(manga);
+  }
+
+  Future<void> removeFromLibrary(String mangaId) async {
+    await ref.read(removeFromLibraryUseCaseProvider).call(mangaId);
+  }
 }
 
 /// Provider for [LibraryNotifier].

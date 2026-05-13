@@ -35,19 +35,71 @@ import '../../data/remote/flame_service.dart';
 import '../../data/local/daos/manga_dao.dart';
 import '../../data/local/daos/chapter_dao.dart';
 
+import '../../data/local/database/app_database.dart';
+
+// ── Database ──────────────────────────────────────────────────────────────────
+
+/// Provider for the single [AppDatabase] instance.
+final databaseProvider = Provider<AppDatabase>((ref) {
+  final db = AppDatabase();
+  ref.onDispose(() => db.close());
+  return db;
+});
+
 // ── Manga ──────────────────────────────────────────────────────────────────────
 
 /// Concrete [MangaRepository] using multiple sources.
 final mangaRepositoryProvider = Provider<MangaRepository>((ref) {
-  return _MultiSourceRepository();
+  final db = ref.watch(databaseProvider);
+  return _MultiSourceRepository(db.mangaDao);
 });
 
 class _MultiSourceRepository implements MangaRepository {
+  final MangaDao _mangaDao;
+
+  _MultiSourceRepository(this._mangaDao);
+
   @override
-  Stream<List<Manga>> watchLibrary() => Stream.value([]);
+  Stream<List<Manga>> watchLibrary() {
+    return _mangaDao.watchLibrary().map((list) => list.map((data) => Manga(
+          id: data.id,
+          sourceId: data.sourceId,
+          title: data.title,
+          coverUrl: data.coverUrl,
+          author: data.author,
+          artist: data.artist,
+          description: data.description,
+          status: MangaStatus.values[data.status.index],
+          genres: data.genres?.split(',') ?? [],
+          averageRating: data.averageRating,
+          isNsfw: data.isNsfw,
+          inLibrary: data.inLibrary,
+          lastUpdated: data.lastUpdated,
+        )).toList());
+  }
 
   @override
   Future<Manga?> getMangaById(String id, String sourceId) async {
+    // Check local database first
+    final local = await _mangaDao.getMangaById(id);
+    if (local != null) {
+      return Manga(
+        id: local.id,
+        sourceId: local.sourceId,
+        title: local.title,
+        coverUrl: local.coverUrl,
+        author: local.author,
+        artist: local.artist,
+        description: local.description,
+        status: MangaStatus.values[local.status.index],
+        genres: local.genres?.split(',') ?? [],
+        averageRating: local.averageRating,
+        isNsfw: local.isNsfw,
+        inLibrary: local.inLibrary,
+        lastUpdated: local.lastUpdated,
+      );
+    }
+
     return switch (sourceId) {
       'bato' => null,
       'manganato' => null,
@@ -90,10 +142,33 @@ class _MultiSourceRepository implements MangaRepository {
   }
 
   @override
-  Future<void> addToLibrary(Manga manga) async {}
+  Future<void> addToLibrary(Manga manga) async {
+    await _mangaDao.upsertManga(MangaTableCompanion.insert(
+      id: manga.id,
+      sourceId: manga.sourceId,
+      title: manga.title,
+      coverUrl: Value(manga.coverUrl),
+      author: Value(manga.author),
+      artist: Value(manga.artist),
+      description: Value(manga.description),
+      status: Value(MangaTableStatus.values[manga.status.index]),
+      genres: Value(manga.genres.join(',')),
+      averageRating: Value(manga.averageRating),
+      isNsfw: Value(manga.isNsfw),
+      inLibrary: const Value(true),
+      lastUpdated: Value(manga.lastUpdated),
+    ));
+  }
 
   @override
-  Future<void> removeFromLibrary(String mangaId) async {}
+  Future<void> removeFromLibrary(String mangaId) async {
+    final manga = await _mangaDao.getMangaById(mangaId);
+    if (manga != null) {
+      await _mangaDao.upsertManga(manga.toCompanion(true).copyWith(
+            inLibrary: const Value(false),
+          ));
+    }
+  }
 
   @override
   Future<List<Chapter>> getChapterList(String mangaId, String sourceId) async {
