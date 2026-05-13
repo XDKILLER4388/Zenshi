@@ -150,7 +150,7 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
                   onStartReading: () {
                     if (firstUnread != null) {
                       context.push(
-                        '/reader/${widget.mangaId}/${firstUnread.id}',
+                        '/reader/${widget.sourceId}/${widget.mangaId}/${firstUnread.id}',
                       );
                     }
                   },
@@ -216,7 +216,7 @@ class _MangaDetailsScreenState extends ConsumerState<MangaDetailsScreen>
                           onToggleSort: () =>
                               setState(() => _sortAscending = !_sortAscending),
                           onTap: (ch) => context.push(
-                            '/reader/${widget.mangaId}/${ch.id}',
+                            '/reader/${widget.sourceId}/${widget.mangaId}/${ch.id}',
                           ),
                           onLongPress: (ch) => _showContextMenu(context, ch),
                           mangaTitle: manga.title,

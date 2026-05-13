@@ -9,9 +9,14 @@ import '../../providers/mangadex_provider.dart';
 
 /// Standalone chapter list screen (accessible via /manga/:id/chapters).
 class ChapterListScreen extends ConsumerStatefulWidget {
-  const ChapterListScreen({super.key, required this.mangaId});
+  const ChapterListScreen({
+    super.key,
+    required this.mangaId,
+    required this.sourceId,
+  });
 
   final String mangaId;
+  final String sourceId;
 
   @override
   ConsumerState<ChapterListScreen> createState() => _ChapterListScreenState();
@@ -22,7 +27,8 @@ class _ChapterListScreenState extends ConsumerState<ChapterListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final chaptersAsync = ref.watch(chapterListByMangaProvider(widget.mangaId));
+    final args = MangaDetailArgs(id: widget.mangaId, sourceId: widget.sourceId);
+    final chaptersAsync = ref.watch(chapterListByMangaProvider(args));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -41,8 +47,7 @@ class _ChapterListScreenState extends ConsumerState<ChapterListScreen> {
                   : Icons.arrow_downward_rounded,
               color: AppColors.primary,
             ),
-            onPressed: () =>
-                setState(() => _sortAscending = !_sortAscending),
+            onPressed: () => setState(() => _sortAscending = !_sortAscending),
           ),
         ],
       ),
@@ -73,7 +78,9 @@ class _ChapterListScreenState extends ConsumerState<ChapterListScreen> {
               return Opacity(
                 opacity: isRead ? 0.5 : 1.0,
                 child: ListTile(
-                  onTap: () => ctx.push('/reader/${widget.mangaId}/${ch.id}'),
+                  onTap: () => ctx.push(
+                    '/reader/${widget.sourceId}/${widget.mangaId}/${ch.id}',
+                  ),
                   title: Text(
                     'Chapter ${ch.chapterNumber.toStringAsFixed(ch.chapterNumber % 1 == 0 ? 0 : 1)}',
                     style: AppTypography.titleSmall.copyWith(
@@ -89,8 +96,11 @@ class _ChapterListScreenState extends ConsumerState<ChapterListScreen> {
                         )
                       : null,
                   trailing: isRead
-                      ? const Icon(Icons.check_circle_rounded,
-                          color: Colors.green, size: 20)
+                      ? const Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.green,
+                          size: 20,
+                        )
                       : null,
                 ),
               );

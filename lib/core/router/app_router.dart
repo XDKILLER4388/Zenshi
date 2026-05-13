@@ -108,8 +108,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'chapters',
             name: 'chapterList',
-            builder: (_, state) =>
-                ChapterListScreen(mangaId: state.pathParameters['id']!),
+            builder: (_, state) => ChapterListScreen(
+              mangaId: state.pathParameters['id']!,
+              sourceId: state.pathParameters['sourceId']!,
+            ),
           ),
         ],
       ),
