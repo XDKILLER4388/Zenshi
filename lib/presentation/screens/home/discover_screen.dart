@@ -34,19 +34,20 @@ class DiscoverScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final manhwaz = ref.watch(manhwazLatestProvider);
+    final mangafire = ref.watch(mangafireLatestProvider);
+    final comix = ref.watch(comixLatestProvider);
     final asura = ref.watch(asuraLatestProvider);
     final reaper = ref.watch(reaperLatestProvider);
     final flame = ref.watch(flameLatestProvider);
     final manganato = ref.watch(manganatoLatestProvider);
-    final mangafire = ref.watch(mangafireLatestProvider);
 
     // Collect all loaded manga for random pick
     final allLoaded = [
-      ...asura.valueOrNull ?? [],
-      ...reaper.valueOrNull ?? [],
-      ...flame.valueOrNull ?? [],
-      ...manganato.valueOrNull ?? [],
+      ...manhwaz.valueOrNull ?? [],
       ...mangafire.valueOrNull ?? [],
+      ...comix.valueOrNull ?? [],
+      ...asura.valueOrNull ?? [],
     ];
 
     return Scaffold(
@@ -66,16 +67,27 @@ class DiscoverScreen extends ConsumerWidget {
         color: AppColors.primary,
         backgroundColor: AppColors.surface,
         onRefresh: () async {
+          ref.invalidate(manhwazLatestProvider);
+          ref.invalidate(mangafireLatestProvider);
+          ref.invalidate(comixLatestProvider);
           ref.invalidate(asuraLatestProvider);
           ref.invalidate(reaperLatestProvider);
           ref.invalidate(flameLatestProvider);
           ref.invalidate(manganatoLatestProvider);
-          ref.invalidate(mangafireLatestProvider);
         },
         child: CustomScrollView(
           slivers: [
             // Genre chips
             SliverToBoxAdapter(child: _GenreChips()),
+
+            // Manhwaz
+            SliverToBoxAdapter(
+              child: _MangaSection(
+                title: 'Manhwaz Latest',
+                badge: '⚡',
+                asyncValue: manhwaz,
+              ),
+            ),
 
             // MangaFire
             SliverToBoxAdapter(
@@ -83,6 +95,15 @@ class DiscoverScreen extends ConsumerWidget {
                 title: 'MangaFire Latest',
                 badge: '🔥',
                 asyncValue: mangafire,
+              ),
+            ),
+
+            // Comix
+            SliverToBoxAdapter(
+              child: _MangaSection(
+                title: 'Comix Latest',
+                badge: '✨',
+                asyncValue: comix,
               ),
             ),
 

@@ -5,37 +5,34 @@ import '../../domain/entities/chapter.dart';
 import '../../domain/entities/manga.dart';
 import '../../domain/entities/page.dart';
 
-class ManhwazService {
-  static const _base = 'https://manhwaz.com';
+class ComixService {
+  static const _base = 'https://comix.xyz';
   static final _client = http.Client();
 
   static const _headers = {
     'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept':
         'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Referer': 'https://manhwaz.com/',
+    'Referer': 'https://comix.xyz/',
   };
 
   static Future<List<Manga>> fetchLatest() async {
     try {
-      final url = '$_base/latest-updates';
+      final url = '$_base/latest';
       final response = await _client.get(Uri.parse(url), headers: _headers);
-      print('Manhwaz fetchLatest status: ${response.statusCode}');
+      print('Comix fetchLatest status: ${response.statusCode}');
       if (response.statusCode != 200) return [];
 
       final document = parser.parse(response.body);
-      final items = document.querySelectorAll(
-        '.manga-item, .list-item, .bs, .item-list',
-      );
-      print('Manhwaz items found: ${items.length}');
+      final items = document.querySelectorAll('.list-item, .manga-item, .bs');
+      print('Comix items found: ${items.length}');
 
       return items
           .map((item) {
-            final titleLink = item.querySelector('.title a, h3 a, .tt a');
-            final title = titleLink?.text.trim() ?? 'Unknown';
-            final href = titleLink?.attributes['href'] ?? '';
+            final titleElement = item.querySelector('.title a');
+            final title = titleElement?.text.trim() ?? 'Unknown';
+            final href = titleElement?.attributes['href'] ?? '';
             final id = href.split('/').where((s) => s.isNotEmpty).last;
             final coverUrl =
                 item.querySelector('img')?.attributes['src'] ??
@@ -44,7 +41,7 @@ class ManhwazService {
 
             return Manga(
               id: id,
-              sourceId: 'manhwaz',
+              sourceId: 'comix',
               title: title,
               coverUrl: coverUrl,
               status: MangaStatus.unknown,
@@ -59,30 +56,34 @@ class ManhwazService {
 
   static Future<List<Manga>> search(String query) async {
     try {
-      final encodedQuery = Uri.encodeComponent(query);
-      final url = '$_base/search?q=$encodedQuery';
+      final url = '$_base/search?q=${Uri.encodeComponent(query)}';
       final response = await _client.get(Uri.parse(url), headers: _headers);
-
       if (response.statusCode != 200) return [];
 
       final document = parser.parse(response.body);
-      final items = document.querySelectorAll('.manga-item');
+      final items = document.querySelectorAll('.list-item');
 
-      return items.map((item) {
-        final titleLink = item.querySelector('.title a');
-        final title = titleLink?.text.trim() ?? 'Unknown';
-        final href = titleLink?.attributes['href'] ?? '';
-        final id = href.split('/').last;
-        final coverUrl = item.querySelector('img')?.attributes['src'] ?? '';
+      return items
+          .map((item) {
+            final titleElement = item.querySelector('.title a');
+            final title = titleElement?.text.trim() ?? 'Unknown';
+            final href = titleElement?.attributes['href'] ?? '';
+            final id = href.split('/').where((s) => s.isNotEmpty).last;
+            final coverUrl =
+                item.querySelector('img')?.attributes['src'] ??
+                item.querySelector('img')?.attributes['data-src'] ??
+                '';
 
-        return Manga(
-          id: id,
-          sourceId: 'manhwaz',
-          title: title,
-          coverUrl: coverUrl,
-          status: MangaStatus.unknown,
-        );
-      }).toList();
+            return Manga(
+              id: id,
+              sourceId: 'comix',
+              title: title,
+              coverUrl: coverUrl,
+              status: MangaStatus.unknown,
+            );
+          })
+          .where((m) => m.id.isNotEmpty)
+          .toList();
     } catch (_) {
       return [];
     }
@@ -103,7 +104,7 @@ class ManhwazService {
 
       return Manga(
         id: id,
-        sourceId: 'manhwaz',
+        sourceId: 'comix',
         title: title,
         coverUrl: coverUrl,
         description: description,
@@ -141,7 +142,7 @@ class ManhwazService {
         return Chapter(
           id: id,
           mangaId: mangaId,
-          sourceId: 'manhwaz',
+          sourceId: 'comix',
           chapterNumber: chapterNumber,
           title: title,
           isRead: false,
@@ -157,22 +158,29 @@ class ManhwazService {
 
   static Future<List<Page>> fetchPages(String chapterId) async {
     try {
-      final url = '$_base/read/$chapterId';
+      final url = '$_base/chapter/$chapterId';
       final response = await _client.get(Uri.parse(url), headers: _headers);
       if (response.statusCode != 200) return [];
 
       final document = parser.parse(response.body);
-      final images = document.querySelectorAll('.reader-content img');
+      final images = document.querySelectorAll(
+        '.reader-area img, .chapter-content img',
+      );
 
-      return images.asMap().entries.map((entry) {
-        return Page(
-          index: entry.key,
-          imageUrl:
-              entry.value.attributes['src'] ??
-              entry.value.attributes['data-src'] ??
-              '',
-        );
-      }).toList();
+      return images
+          .asMap()
+          .entries
+          .map((entry) {
+            final img = entry.value;
+            final imageUrl =
+                img.attributes['src'] ??
+                img.attributes['data-src'] ??
+                img.attributes['data-lazy-src'] ??
+                '';
+            return Page(index: entry.key, imageUrl: imageUrl.trim());
+          })
+          .where((p) => p.imageUrl.isNotEmpty)
+          .toList();
     } catch (_) {
       return [];
     }

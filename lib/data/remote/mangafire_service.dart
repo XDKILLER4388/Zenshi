@@ -10,8 +10,10 @@ class MangaFireService {
   static final _client = http.Client();
 
   static const _headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept':
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
     'Referer': 'https://mangafire.to/',
   };
 
@@ -19,27 +21,38 @@ class MangaFireService {
     try {
       final url = '$_base/filter?sort=recently_updated';
       final response = await _client.get(Uri.parse(url), headers: _headers);
-      if (response.statusCode != 200) return [];
+
+      print('MangaFire fetchLatest status: ${response.statusCode}');
+      if (response.statusCode != 200) {
+        print('MangaFire error: ${response.body.substring(0, 100)}');
+        return [];
+      }
 
       final document = parser.parse(response.body);
-      final items = document.querySelectorAll('.inner');
+      final items = document.querySelectorAll('.inner, .unit');
+      print('MangaFire items found: ${items.length}');
 
-      return items.map((item) {
-        final titleElement = item.querySelector('.info > a');
-        final title = titleElement?.text.trim() ?? 'Unknown';
-        final href = titleElement?.attributes['href'] ?? '';
-        final id = href.split('/').where((s) => s.isNotEmpty).last;
-        final coverUrl = item.querySelector('img')?.attributes['src'] ?? 
-                        item.querySelector('img')?.attributes['data-src'] ?? '';
+      return items
+          .map((item) {
+            final titleElement = item.querySelector('.info > a');
+            final title = titleElement?.text.trim() ?? 'Unknown';
+            final href = titleElement?.attributes['href'] ?? '';
+            final id = href.split('/').where((s) => s.isNotEmpty).last;
+            final coverUrl =
+                item.querySelector('img')?.attributes['src'] ??
+                item.querySelector('img')?.attributes['data-src'] ??
+                '';
 
-        return Manga(
-          id: id,
-          sourceId: 'mangafire',
-          title: title,
-          coverUrl: coverUrl,
-          status: MangaStatus.unknown,
-        );
-      }).where((m) => m.id.isNotEmpty).toList();
+            return Manga(
+              id: id,
+              sourceId: 'mangafire',
+              title: title,
+              coverUrl: coverUrl,
+              status: MangaStatus.unknown,
+            );
+          })
+          .where((m) => m.id.isNotEmpty)
+          .toList();
     } catch (_) {
       return [];
     }
@@ -54,22 +67,27 @@ class MangaFireService {
       final document = parser.parse(response.body);
       final items = document.querySelectorAll('.inner');
 
-      return items.map((item) {
-        final titleElement = item.querySelector('.info > a');
-        final title = titleElement?.text.trim() ?? 'Unknown';
-        final href = titleElement?.attributes['href'] ?? '';
-        final id = href.split('/').where((s) => s.isNotEmpty).last;
-        final coverUrl = item.querySelector('img')?.attributes['src'] ?? 
-                        item.querySelector('img')?.attributes['data-src'] ?? '';
+      return items
+          .map((item) {
+            final titleElement = item.querySelector('.info > a');
+            final title = titleElement?.text.trim() ?? 'Unknown';
+            final href = titleElement?.attributes['href'] ?? '';
+            final id = href.split('/').where((s) => s.isNotEmpty).last;
+            final coverUrl =
+                item.querySelector('img')?.attributes['src'] ??
+                item.querySelector('img')?.attributes['data-src'] ??
+                '';
 
-        return Manga(
-          id: id,
-          sourceId: 'mangafire',
-          title: title,
-          coverUrl: coverUrl,
-          status: MangaStatus.unknown,
-        );
-      }).where((m) => m.id.isNotEmpty).toList();
+            return Manga(
+              id: id,
+              sourceId: 'mangafire',
+              title: title,
+              coverUrl: coverUrl,
+              status: MangaStatus.unknown,
+            );
+          })
+          .where((m) => m.id.isNotEmpty)
+          .toList();
     } catch (_) {
       return [];
     }
@@ -84,8 +102,10 @@ class MangaFireService {
       final document = parser.parse(response.body);
       final info = document.querySelector('.info');
       final title = info?.querySelector('h1')?.text.trim() ?? '';
-      final description = info?.querySelector('.description')?.text.trim() ?? '';
-      final coverUrl = document.querySelector('.poster img')?.attributes['src'] ?? '';
+      final description =
+          info?.querySelector('.description')?.text.trim() ?? '';
+      final coverUrl =
+          document.querySelector('.poster img')?.attributes['src'] ?? '';
 
       return Manga(
         id: mangaId,
@@ -113,7 +133,7 @@ class MangaFireService {
         final title = item.text.trim();
         final href = item.attributes['href'] ?? '';
         final id = href.split('/').where((s) => s.isNotEmpty).last;
-        
+
         return Chapter(
           id: id,
           mangaId: mangaId,
@@ -135,16 +155,24 @@ class MangaFireService {
       if (response.statusCode != 200) return [];
 
       final document = parser.parse(response.body);
-      final images = document.querySelectorAll('#readerarea img, .read-content img');
+      final images = document.querySelectorAll(
+        '#readerarea img, .read-content img',
+      );
 
-      return images.asMap().entries.map((entry) {
-        final img = entry.value;
-        final imageUrl = img.attributes['src'] ?? 
-                        img.attributes['data-src'] ?? 
-                        img.attributes['data-lazy-src'] ?? 
-                        '';
-        return Page(index: entry.key, imageUrl: imageUrl.trim());
-      }).where((p) => p.imageUrl.isNotEmpty).toList();
+      return images
+          .asMap()
+          .entries
+          .map((entry) {
+            final img = entry.value;
+            final imageUrl =
+                img.attributes['src'] ??
+                img.attributes['data-src'] ??
+                img.attributes['data-lazy-src'] ??
+                '';
+            return Page(index: entry.key, imageUrl: imageUrl.trim());
+          })
+          .where((p) => p.imageUrl.isNotEmpty)
+          .toList();
     } catch (_) {
       return [];
     }

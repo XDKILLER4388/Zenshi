@@ -29,6 +29,7 @@ import '../../data/remote/reaper_service.dart';
 import '../../data/remote/flame_service.dart';
 import '../../data/remote/mangazone_service.dart';
 import '../../data/remote/mangafire_service.dart';
+import '../../data/remote/comix_service.dart';
 import '../../data/local/daos/manga_dao.dart';
 import '../../data/local/daos/chapter_dao.dart';
 import '../../data/local/database/app_database.dart';
@@ -124,6 +125,8 @@ class _MultiSourceRepository implements MangaRepository {
       'flame' => FlameService.fetchMangaById(id),
       'manhwaz' => ManhwazService.fetchMangaById(id),
       'manhwa18' => Manhwa18Service.fetchMangaById(id),
+      'mangafire' => MangaFireService.fetchDetails(id),
+      'comix' => ComixService.fetchMangaById(id),
       _ => MangaDexService.fetchMangaById(id),
     };
   }
@@ -145,6 +148,7 @@ class _MultiSourceRepository implements MangaRepository {
       ReaperService.search(title),
       FlameService.search(title),
       MangaFireService.search(title),
+      ComixService.search(title),
     ]);
 
     return results.expand((x) => x).toList();
@@ -194,6 +198,7 @@ class _MultiSourceRepository implements MangaRepository {
       'reaper' => ReaperService.fetchChapterList(mangaId),
       'flame' => FlameService.fetchChapterList(mangaId),
       'mangafire' => MangaFireService.fetchChapters(mangaId),
+      'comix' => ComixService.fetchChapterList(mangaId),
       _ => MangaDexService.fetchChapterList(mangaId),
     };
 
@@ -218,6 +223,7 @@ class _MultiSourceRepository implements MangaRepository {
       'reaper' => ReaperService.fetchPages(chapter.id),
       'flame' => FlameService.fetchPages(chapter.id),
       'mangafire' => MangaFireService.fetchPages(chapter.id),
+      'comix' => ComixService.fetchPages(chapter.id),
       _ => MangaDexService.fetchPages(chapter.id),
     };
   }
@@ -249,6 +255,7 @@ class _MangaDexReaderRepository implements ReaderRepository {
       'reaper' => ReaperService.fetchPages(chapter.id),
       'flame' => FlameService.fetchPages(chapter.id),
       'mangafire' => MangaFireService.fetchPages(chapter.id),
+      'comix' => ComixService.fetchPages(chapter.id),
       _ => MangaDexService.fetchPages(chapter.id),
     };
   }
